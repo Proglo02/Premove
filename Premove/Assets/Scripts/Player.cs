@@ -10,6 +10,8 @@ public class Player
     public Board board;
     public List<Piece> activePieces { get; private set; }
 
+    public int score = 0;
+
     public Player(TeamColor team, Board board)
     {
         teamColor = team;
@@ -20,7 +22,10 @@ public class Player
     public void AddPiece(Piece piece)
     {
         if (!activePieces.Contains(piece))
+        {
             activePieces.Add(piece);
+            score += piece.value;
+        }
     }
 
     public void RemovePiece(Piece piece)
@@ -62,6 +67,9 @@ public class Player
     /// </summary>
     public void RemoveUnsafeMoves<T>(Player otherPlayer, Piece selectedPiece) where T : Piece
     {
+        if (selectedPiece == null)
+            return;
+
         List<Vector2Int> coordsToRemove = new List<Vector2Int>();
         foreach(var coords in selectedPiece.availableMoves)
         {
@@ -79,7 +87,10 @@ public class Player
         }
     }
 
-    private bool CheckIfAttackingPiece<T>() where T : Piece
+    /// <summary>
+    /// Checks if the player is attacking a piece of type
+    /// </summary>
+    public bool CheckIfAttackingPiece<T>() where T : Piece
     {
         foreach(var piece in activePieces)
         {
@@ -112,5 +123,20 @@ public class Player
         }
 
         return false;
+    }
+
+    public List<Vector2Int> GetAllAvailableMoves()
+    {
+        List<Vector2Int> availableMoves = new List<Vector2Int>();
+
+        foreach(var piece in activePieces)
+        {
+            foreach(var move in piece.availableMoves)
+            {
+                availableMoves.Add(move);
+            }
+        }
+
+        return availableMoves;
     }
 }

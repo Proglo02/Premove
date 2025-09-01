@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -5,7 +6,7 @@ using UnityEngine;
 public class King : Piece
 {
     Vector2Int[] directions = new Vector2Int[]
-{
+    {
         new Vector2Int(-1, 1),
         new Vector2Int(0, 1),
         new Vector2Int(1, 1),
@@ -14,10 +15,23 @@ public class King : Piece
         new Vector2Int(-1, -1),
         new Vector2Int(0, -1),
         new Vector2Int(1, -1),
-};
+    };
+
+    private Vector2Int leftCastlingMove;
+    private Vector2Int rightCastlingMove;
+
+    private Piece leftRook;
+    private Piece rightRook;
+
     public override List<Vector2Int> SelectAvailableSquares()
     {
         availableMoves.Clear();
+        AddStandardMoves();
+        AddCastlingMoves();
+        return availableMoves;
+    }
+    private void AddStandardMoves()
+    {
         float range = 1;
 
         foreach (var direction in directions)
@@ -39,6 +53,39 @@ public class King : Piece
                     break;
             }
         }
-        return availableMoves;
+    }
+    private void AddCastlingMoves()
+    {
+        if (hasMoved)
+            return;
+
+        leftRook = TryGetPieceInDirection<Rook>(teamColor, Vector2Int.left);
+        if(leftRook && !leftRook.hasMoved)
+        {
+            leftCastlingMove = square + Vector2Int.left * 2;
+            availableMoves.Add(leftCastlingMove);
+        }
+
+        rightRook = TryGetPieceInDirection<Rook>(teamColor, Vector2Int.right);
+        if(rightRook && !rightRook.hasMoved)
+        {
+            rightCastlingMove = square + Vector2Int.right * 2;
+            availableMoves.Add(rightCastlingMove);
+        }
+    }
+
+    public override void MovePiece(Vector2Int coords)
+    {
+        base.MovePiece(coords);
+        if(coords == leftCastlingMove)
+        {
+            board.UpdateBoardOnPieceMove(coords + Vector2Int.right, leftRook.square, leftRook, null);
+            leftRook.MovePiece(coords + Vector2Int.right);
+        }
+        else if (coords == rightCastlingMove)
+        {
+            board.UpdateBoardOnPieceMove(coords + Vector2Int.left, rightRook.square, rightRook, null);
+            rightRook.MovePiece(coords + Vector2Int.left);
+        }
     }
 }

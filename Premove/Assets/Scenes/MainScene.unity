@@ -428,6 +428,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   startingBoardLayout: {fileID: 11400000, guid: 6141e8bbb47db5d469509ea0f6e0e60c, type: 2}
   board: {fileID: 1722256946}
+  moveCount: 0
 --- !u!114 &1295723717
 MonoBehaviour:
   m_ObjectHideFlags: 0

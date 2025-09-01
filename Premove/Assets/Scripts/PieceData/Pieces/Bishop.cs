@@ -15,7 +15,7 @@ public class Bishop : Piece
     public override List<Vector2Int> SelectAvailableSquares()
     {
         availableMoves.Clear();
-        float range = Board.boardWidth;
+        float range = Board.BOARD_WIDTH;
 
         foreach (var direction in directions)
         {

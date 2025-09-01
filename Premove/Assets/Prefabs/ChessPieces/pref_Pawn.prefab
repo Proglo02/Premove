@@ -61,6 +61,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   square: {x: 0, y: 0}
   teamColor: 0
+  value: 1
   availableMoves: []
 --- !u!114 &8499212631305943872
 MonoBehaviour:

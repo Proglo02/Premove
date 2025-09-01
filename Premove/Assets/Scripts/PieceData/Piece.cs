@@ -13,6 +13,7 @@ public abstract class Piece : MonoBehaviour
 
     public Vector2Int square;
     public TeamColor teamColor;
+    public int value = 0;
 
     public bool hasMoved { get; private set; } = false;
     public List<Vector2Int> availableMoves = new List<Vector2Int>();
@@ -92,5 +93,27 @@ public abstract class Piece : MonoBehaviour
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// Tries to get the piece of a type in the given direction
+    /// </summary>
+    protected Piece TryGetPieceInDirection<T>(TeamColor teamColor, Vector2Int direction) where T : Piece
+    {
+        for(int i = 1; i <= Board.BOARD_WIDTH; i++)
+        {
+            Vector2Int nextCoords = square + direction * i;
+            Piece piece = board.GetPieceOnSquare(nextCoords);
+            if (!board.CoordsOnBoard(nextCoords))
+                return null;
+            if(piece != null)
+            {
+                if (piece.teamColor != teamColor || !(piece is T))
+                    return null;
+                else if (piece.teamColor == teamColor && piece is T)
+                    return piece;
+            }
+        }
+        return null;
     }
 }

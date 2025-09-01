@@ -11,6 +11,14 @@ public enum GameState
     Finished
 }
 
+public enum WinState
+{
+    None,
+    Checkmate,
+    Stalemate,
+    InsuficientMaterial
+}
+
 [RequireComponent(typeof(PieceInitializer))]
 public class GameManager : MonoBehaviour
 {
@@ -23,7 +31,10 @@ public class GameManager : MonoBehaviour
     private Player blackPlayer;
     private Player activePlayer;
 
-    private GameState state;
+    [HideInInspector] public int moveCount = 0;
+
+    private GameState gameState;
+    private WinState winState;
 
     private void Awake()
     {
@@ -50,6 +61,7 @@ public class GameManager : MonoBehaviour
     private void StartNewGame()
     {
         SetGameState(GameState.Init);
+        SetWinState(WinState.None);
 
         board.SetDependencies(this);
 
@@ -66,7 +78,12 @@ public class GameManager : MonoBehaviour
     //Sets the current state of the game
     private void SetGameState(GameState state)
     {
-        this.state = state;
+        gameState = state;
+    }
+
+    private void SetWinState(WinState state)
+    {
+        winState = state;
     }
 
     /// <summary>
@@ -74,7 +91,7 @@ public class GameManager : MonoBehaviour
     /// </summary>
     public bool IsGameInProgress()
     {
-        return state == GameState.Active;
+        return gameState == GameState.Active;
     }
 
     private void CreatePiecesFromLayout(BoardLayout layout)
@@ -91,7 +108,10 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    private void InitializePiece(Vector2Int coords, TeamColor teamColor, Type type)
+    /// <summary>
+    /// Initializes a piece at the given corrds of the type and color
+    /// </summary>
+    public void InitializePiece(Vector2Int coords, TeamColor teamColor, Type type)
     {
         //Creatse a new piece of the given type
         Piece newPiece = pieceInitializer.InitializePiece(type).GetComponent<Piece>();
@@ -125,32 +145,71 @@ public class GameManager : MonoBehaviour
     /// </summary>
     public void EndTurn()
     {
+        moveCount++;
         GenerateAllPossiblePlayerMoves(activePlayer);
         GenerateAllPossiblePlayerMoves(GetOtherPlayer(activePlayer));
-        if (GameFinished())
+        ClearEnPassant();
+        if (CheckGameFinished())
             EndGame();
-        else
+        else if (moveCount >= 10)
+        {
+            moveCount = 0;
             ChangeActivePlayer();
+        }
     }
 
-    private bool GameFinished()
+    private void ClearEnPassant()
+    {
+        foreach(var piece in GetOtherPlayer(activePlayer).GetPiecesOfType<Pawn>())
+        {
+            Pawn pawn = (Pawn)piece;
+            pawn.hasJumped = false;
+        }
+    }
+
+    private bool CheckGameFinished()
     {
         Piece[] piecesWithCheck = activePlayer.GetPiecesWithCheck();
-        if(piecesWithCheck.Length > 0)
+        Player otherPlayer = GetOtherPlayer(activePlayer);
+        if (piecesWithCheck.Length > 0)
         {
-            Player oppositePlayer = GetOtherPlayer(activePlayer);
-            Piece king = oppositePlayer.GetPiecesOfType<King>().FirstOrDefault();
-            oppositePlayer.RemoveUnsafeMoves<King>(activePlayer, king);
+            Piece king = otherPlayer.GetPiecesOfType<King>().FirstOrDefault();
+            otherPlayer.RemoveUnsafeMoves<King>(activePlayer, king);
 
-            int availableKingMoves = oppositePlayer.GetPiecesOfType<King>().FirstOrDefault().availableMoves.Count();
+            int availableKingMoves = otherPlayer.GetPiecesOfType<King>().FirstOrDefault().availableMoves.Count();
 
             if(availableKingMoves == 0)
             {
-                bool canCoverKing = oppositePlayer.CanCoverKing(activePlayer);
+                bool canCoverKing = otherPlayer.CanCoverKing(activePlayer);
                 if(!canCoverKing)
                 {
+                    SetWinState(WinState.Checkmate);
                     return true;
                 }
+            }
+        }
+        else
+        {
+            int numActivePawns = activePlayer.GetPiecesOfType<Pawn>().Count();
+            int numOtherPawns = otherPlayer.GetPiecesOfType<Pawn>().Count();
+            if(numActivePawns == 0 && numOtherPawns == 0)
+            {
+                if (otherPlayer.score <= 3 && activePlayer.score <= 3)
+                {
+                    SetWinState(WinState.InsuficientMaterial);
+                    return true;
+                }
+            }
+
+            Piece king = otherPlayer.GetPiecesOfType<King>().FirstOrDefault();
+            otherPlayer.RemoveUnsafeMoves<King>(activePlayer, king);
+
+            int availableMoves = otherPlayer.GetAllAvailableMoves().Count();
+
+            if (availableMoves == 0)
+            {
+                SetWinState(WinState.Stalemate);
+                return true;
             }
         }
 
@@ -159,7 +218,7 @@ public class GameManager : MonoBehaviour
 
     private void EndGame()
     {
-        Debug.Log("Check Mate");
+        Debug.Log(winState.ToString());
         SetGameState(GameState.Finished);
     }
 
@@ -187,6 +246,7 @@ public class GameManager : MonoBehaviour
     public void OnPieceRemoved(Piece piece)
     {
         Player pieceOwner = (piece.teamColor == TeamColor.White ? whitePlayer : blackPlayer);
+        pieceOwner.score -= piece.value;
         pieceOwner.RemovePiece(piece);
         Destroy(piece.gameObject);
     }

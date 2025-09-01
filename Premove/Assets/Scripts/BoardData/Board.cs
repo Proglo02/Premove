@@ -15,7 +15,7 @@ public class Board : MonoBehaviour
     private Piece[,] grid;
     private Piece selectedPiece;
 
-    public const int boardWidth = 8;
+    public const int BOARD_WIDTH = 8;
 
     private void Awake()
     {
@@ -30,7 +30,7 @@ public class Board : MonoBehaviour
 
     private void CreateGrid()
     {
-        grid = new Piece[boardWidth, boardWidth];
+        grid = new Piece[BOARD_WIDTH, BOARD_WIDTH];
     }
 
     /// <summary>  
@@ -44,9 +44,9 @@ public class Board : MonoBehaviour
     internal bool HasPiece(Piece piece)
     {
         //Check if the piece exists on the board
-        for (int i = 0; i < boardWidth; i++)
+        for (int i = 0; i < BOARD_WIDTH; i++)
         {
-            for (int j = 0; j < boardWidth; j++)
+            for (int j = 0; j < BOARD_WIDTH; j++)
             {
                 if (grid[i, j] == piece)
                 {
@@ -124,13 +124,22 @@ public class Board : MonoBehaviour
             TakePiece(piece);
     }
 
-    private void TakePiece(Piece piece)
+    /// <summary>
+    /// Takes the given piece
+    /// </summary>
+    public void TakePiece(Piece piece)
     {
         if(piece)
         {
             grid[piece.square.x, piece.square.y] = null;
             gameManager.OnPieceRemoved(piece);
         }
+    }
+
+    public void PromotePiece(Piece piece)
+    {
+        TakePiece(piece);
+        gameManager.InitializePiece(piece.square, piece.teamColor, typeof(Queen));
     }
 
     /// <summary>
@@ -145,8 +154,8 @@ public class Board : MonoBehaviour
     // Calculate the board coordinates from the given world position
     private Vector2Int CalculateCoordsFromPosition(Vector3 inputPosition)
     {
-        int x = Mathf.FloorToInt(transform.InverseTransformPoint(inputPosition).z / squareWidth) + boardWidth / 2;
-        int y = Mathf.FloorToInt(-transform.InverseTransformPoint(inputPosition).x / squareWidth) + boardWidth / 2;
+        int x = Mathf.FloorToInt(transform.InverseTransformPoint(inputPosition).z / squareWidth) + BOARD_WIDTH / 2;
+        int y = Mathf.FloorToInt(-transform.InverseTransformPoint(inputPosition).x / squareWidth) + BOARD_WIDTH / 2;
         return new Vector2Int(x, y);
     }
     /// <summary>
@@ -164,7 +173,7 @@ public class Board : MonoBehaviour
     /// </summary>
     public bool CoordsOnBoard(Vector2Int coords)
     {
-        if(coords.x < 0 || coords.x >= boardWidth || coords.y < 0 || coords.y >= boardWidth)
+        if(coords.x < 0 || coords.x >= BOARD_WIDTH || coords.y < 0 || coords.y >= BOARD_WIDTH)
             return false;
 
         return true;
