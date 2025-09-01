@@ -426,7 +426,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 635efa089e66e0f408e71d1c95db848e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  startingBoardLayout: {fileID: 11400000, guid: f3d5b633d60ede34fb0e3317ed5800fc, type: 2}
+  startingBoardLayout: {fileID: 11400000, guid: 6141e8bbb47db5d469509ea0f6e0e60c, type: 2}
   board: {fileID: 1722256946}
   moveCount: 0
 --- !u!114 &1295723717
