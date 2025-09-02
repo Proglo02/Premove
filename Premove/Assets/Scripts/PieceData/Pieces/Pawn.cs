@@ -48,8 +48,18 @@ public class Pawn : Piece
             Piece piece = board.GetPieceOnSquare(nextCoords);
             if (!board.CoordsOnBoard(nextCoords))
                 continue;
-            if (piece != null && !piece.IsSameTeam(this))
-                TryAddMove(nextCoords);
+            if (board.gameManager.gameState != GameState.Looping)
+            {
+                if(piece == null)
+                    TryAddMove(nextCoords);
+                else if (!piece.IsSameTeam(this))
+                    TryAddMove(nextCoords);
+            }
+            else if(piece != null)
+            {
+                if (!piece.IsSameTeam(this))
+                    TryAddMove(nextCoords);
+            }
         }
     }
 
@@ -72,11 +82,11 @@ public class Pawn : Piece
         }
     }
 
-    public override void MovePiece(Vector2Int coords)
+    public override void MovePiece(Vector2Int coords , bool addMove = true)
     {
         Vector2Int prevCoords = square;
 
-        base.MovePiece(coords);
+        base.MovePiece(coords, addMove);
 
         hasJumped = Mathf.Abs(prevCoords.y - square.y) > 1;
 

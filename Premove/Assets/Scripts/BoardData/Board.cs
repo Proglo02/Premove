@@ -1,3 +1,4 @@
+using OpenCover.Framework.Model;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -9,10 +10,10 @@ public class Board : MonoBehaviour
     [SerializeField] private Transform bottomLeftsquare;
     [SerializeField] private float squareWidth;
 
-    private GameManager gameManager;
+    [HideInInspector] public GameManager gameManager;
     private HighlightManager highlightManager;
 
-    private Piece[,] grid;
+    [HideInInspector] public Piece[,] grid;
     private Piece selectedPiece;
 
     public const int BOARD_WIDTH = 8;
@@ -110,17 +111,31 @@ public class Board : MonoBehaviour
 
     private void MoveSelectedPiece(Vector2Int coords, Piece piece)
     {
-        TryToTakePiece(coords);
+        TryToTakePieceSelected(coords);
         UpdateBoardOnPieceMove(coords, piece.square, piece, null);
         selectedPiece.MovePiece(coords);
         DeselectPiece();
         gameManager.EndTurn();
     }
 
-    private void TryToTakePiece(Vector2Int coords)
+    public void MovePiece(Vector2Int coords, Piece piece)
+    {
+        TryToTakePiece(coords, piece);
+        UpdateBoardOnPieceMove(coords, piece.square, piece, null);
+        piece.MovePiece(coords, false);
+    }
+
+    private void TryToTakePieceSelected(Vector2Int coords)
     {
         Piece piece = GetPieceOnSquare(coords);
         if (piece != null && !selectedPiece.IsSameTeam(piece))
+            TakePiece(piece);
+    }
+
+    private void TryToTakePiece(Vector2Int coords, Piece movedPiece)
+    {
+        Piece piece = GetPieceOnSquare(coords);
+        if (piece != null && !movedPiece.IsSameTeam(piece))
             TakePiece(piece);
     }
 
@@ -139,7 +154,7 @@ public class Board : MonoBehaviour
     public void PromotePiece(Piece piece)
     {
         TakePiece(piece);
-        gameManager.InitializePiece(piece.square, piece.teamColor, typeof(Queen));
+        gameManager.InitializePiece(piece.square, piece.teamColor, typeof(Queen), piece.id);
     }
 
     /// <summary>
@@ -186,5 +201,37 @@ public class Board : MonoBehaviour
     {
         if(CoordsOnBoard(coords))
             grid[coords.x, coords.y] = piece;
+    }
+
+    /// <summary>
+    /// Clears the board
+    /// </summary>
+    public void ClearBoard()
+    {
+        foreach(var piece in grid)
+        {
+            if(piece)
+            {
+                TakePiece(piece);
+            }
+        }
+
+        CreateGrid();
+    }
+
+    /// <summary>
+    /// Adds a new move to the player list
+    /// </summary>
+    public void AddMove(Vector2Int oldCoords, Vector2Int newCoords, TeamColor teamColor, int id)
+    {
+        Move move = new Move();
+        move.oldCoords = oldCoords;
+        move.newCoords = newCoords;
+        move.id = id;
+
+        if (teamColor == TeamColor.White)
+            gameManager.whiteMoves.Add(move);
+        else
+            gameManager.blackMoves.Add(move);
     }
 }

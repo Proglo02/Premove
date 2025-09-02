@@ -16,96 +16,128 @@ MonoBehaviour:
   - position: {x: 1, y: 1}
     pieceType: 3
     teamColor: 1
+    id: 0
   - position: {x: 2, y: 1}
     pieceType: 2
     teamColor: 1
+    id: 1
   - position: {x: 3, y: 1}
     pieceType: 1
     teamColor: 1
+    id: 2
   - position: {x: 4, y: 1}
     pieceType: 4
     teamColor: 1
+    id: 3
   - position: {x: 5, y: 1}
     pieceType: 5
     teamColor: 1
+    id: 4
   - position: {x: 6, y: 1}
     pieceType: 1
     teamColor: 1
+    id: 5
   - position: {x: 7, y: 1}
     pieceType: 2
     teamColor: 1
+    id: 6
   - position: {x: 8, y: 1}
     pieceType: 3
     teamColor: 1
+    id: 7
   - position: {x: 1, y: 2}
     pieceType: 0
     teamColor: 1
+    id: 8
   - position: {x: 2, y: 2}
     pieceType: 0
     teamColor: 1
+    id: 9
   - position: {x: 3, y: 2}
     pieceType: 0
     teamColor: 1
+    id: 10
   - position: {x: 4, y: 2}
     pieceType: 0
     teamColor: 1
+    id: 11
   - position: {x: 5, y: 2}
     pieceType: 0
     teamColor: 1
+    id: 12
   - position: {x: 6, y: 2}
     pieceType: 0
     teamColor: 1
+    id: 13
   - position: {x: 7, y: 2}
     pieceType: 0
     teamColor: 1
+    id: 14
   - position: {x: 8, y: 2}
     pieceType: 0
     teamColor: 1
+    id: 15
   - position: {x: 1, y: 8}
     pieceType: 3
     teamColor: 0
+    id: 16
   - position: {x: 2, y: 8}
     pieceType: 2
     teamColor: 0
+    id: 17
   - position: {x: 3, y: 8}
     pieceType: 1
     teamColor: 0
+    id: 18
   - position: {x: 4, y: 8}
     pieceType: 4
     teamColor: 0
+    id: 19
   - position: {x: 5, y: 8}
     pieceType: 5
     teamColor: 0
+    id: 20
   - position: {x: 6, y: 8}
     pieceType: 1
     teamColor: 0
+    id: 21
   - position: {x: 7, y: 8}
     pieceType: 2
     teamColor: 0
+    id: 22
   - position: {x: 8, y: 8}
     pieceType: 3
     teamColor: 0
+    id: 23
   - position: {x: 1, y: 7}
     pieceType: 0
     teamColor: 0
+    id: 24
   - position: {x: 2, y: 7}
     pieceType: 0
     teamColor: 0
+    id: 25
   - position: {x: 3, y: 7}
     pieceType: 0
     teamColor: 0
+    id: 26
   - position: {x: 4, y: 7}
     pieceType: 0
     teamColor: 0
+    id: 27
   - position: {x: 5, y: 7}
     pieceType: 0
     teamColor: 0
+    id: 28
   - position: {x: 6, y: 7}
     pieceType: 0
     teamColor: 0
+    id: 29
   - position: {x: 7, y: 7}
     pieceType: 0
     teamColor: 0
+    id: 30
   - position: {x: 8, y: 7}
     pieceType: 0
     teamColor: 0
+    id: 31

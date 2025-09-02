@@ -14,6 +14,7 @@ public abstract class Piece : MonoBehaviour
     public Vector2Int square;
     public TeamColor teamColor;
     public int value = 0;
+    [HideInInspector] public int id = 0;
 
     public bool hasMoved { get; private set; } = false;
     public List<Vector2Int> availableMoves = new List<Vector2Int>();
@@ -53,8 +54,11 @@ public abstract class Piece : MonoBehaviour
     /// <summary>
     /// Moves the piece to the given coordinates
     /// </summary>
-    public virtual void MovePiece(Vector2Int coords)
+    public virtual void MovePiece(Vector2Int coords, bool addMove = true)
     {
+        if(addMove)
+            board.AddMove(square, coords, teamColor, id);
+
         Vector3 targetPosition = board.CalculatePositionFromCoords(coords);
         square = coords;
         hasMoved = true;
@@ -72,11 +76,12 @@ public abstract class Piece : MonoBehaviour
     /// <summary>
     /// Set the data of the piece
     /// </summary>
-    public void SetData(Vector2Int coords, TeamColor color, Board board)
+    public void SetData(Vector2Int coords, TeamColor color, Board board, int id)
     {
         teamColor = color;
         square = coords;
         this.board = board;
+        this.id = id;
 
         transform.position = board.CalculatePositionFromCoords(coords);
     }

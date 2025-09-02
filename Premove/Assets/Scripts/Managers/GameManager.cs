@@ -8,6 +8,7 @@ public enum GameState
 {
     Init,
     Active,
+    Looping,
     Finished
 }
 
@@ -17,6 +18,12 @@ public enum WinState
     Checkmate,
     Stalemate,
     InsuficientMaterial
+}
+public struct Move
+{
+    public Vector2Int oldCoords;
+    public Vector2Int newCoords;
+    public int id;
 }
 
 [RequireComponent(typeof(PieceInitializer))]
@@ -33,8 +40,13 @@ public class GameManager : MonoBehaviour
 
     [HideInInspector] public int moveCount = 0;
 
-    private GameState gameState;
+    [HideInInspector] public GameState gameState;
     private WinState winState;
+
+    private BoardLayout savedGridState;
+
+    public List<Move> whiteMoves = new List<Move>();
+    public List<Move> blackMoves = new List<Move>();
 
     private void Awake()
     {
@@ -72,6 +84,9 @@ public class GameManager : MonoBehaviour
         activePlayer = whitePlayer;
         GenerateAllPossiblePlayerMoves(activePlayer);
 
+        savedGridState = ScriptableObject.CreateInstance<BoardLayout>();
+        savedGridState.SetLayoutFromGrid(board.grid);
+
         SetGameState(GameState.Active);
     }
 
@@ -102,20 +117,21 @@ public class GameManager : MonoBehaviour
             Vector2Int coords = layout.GetSquareCoordsAtIndex(i);
             TeamColor teamColor = layout.GetPieceTeamColorAtIndex(i);
             string pieceName = layout.GetPieceNameAtIndex(i);
+            int id = layout.GetPieceId(i);
             
             Type type = Type.GetType(pieceName);
-            InitializePiece(coords, teamColor, type);
+            InitializePiece(coords, teamColor, type, id);
         }
     }
 
     /// <summary>
     /// Initializes a piece at the given corrds of the type and color
     /// </summary>
-    public void InitializePiece(Vector2Int coords, TeamColor teamColor, Type type)
+    public void InitializePiece(Vector2Int coords, TeamColor teamColor, Type type, int id)
     {
         //Creatse a new piece of the given type
         Piece newPiece = pieceInitializer.InitializePiece(type).GetComponent<Piece>();
-        newPiece.SetData(coords, teamColor, board);
+        newPiece.SetData(coords, teamColor, board, id);
 
         //Set the material of the piece based on its team color
         Material teamMaterial = pieceInitializer.GetTeamMaterial(teamColor);
@@ -149,13 +165,53 @@ public class GameManager : MonoBehaviour
         GenerateAllPossiblePlayerMoves(activePlayer);
         GenerateAllPossiblePlayerMoves(GetOtherPlayer(activePlayer));
         ClearEnPassant();
+        if (moveCount >= 5)
+            ChangeActivePlayer();
+    }
+
+    private IEnumerator DoGameLoop()
+    {
+        gameState = GameState.Looping;
+        bool whiteToPlay = true;
+
+        while (whiteMoves.Count > 0 || blackMoves.Count > 0)
+        {
+            if (whiteToPlay && whiteMoves.Count < 1)
+                whiteToPlay = false;
+            else if (blackMoves.Count < 1)
+                whiteToPlay = true;
+
+            GenerateAllPossiblePlayerMoves(activePlayer);
+            GenerateAllPossiblePlayerMoves(GetOtherPlayer(activePlayer));
+
+            List<Move> moveList = whiteToPlay ? whiteMoves : blackMoves;
+
+            Vector2Int newCoords;
+            Vector2Int oldCoords;
+
+            newCoords = moveList.First().newCoords;
+            oldCoords = moveList.First().oldCoords;
+
+            Piece piece = board.GetPieceOnSquare(oldCoords);
+
+            if(piece && piece.id == moveList.First().id && piece.CanMoveTo(newCoords))
+                board.MovePiece(newCoords, piece);
+
+            moveList.RemoveAt(0);
+
+            ClearEnPassant();
+
+            whiteToPlay = !whiteToPlay;
+
+            yield return new WaitForSeconds(.5f);
+        }
+
+        savedGridState.SetLayoutFromGrid(board.grid);
+        GenerateAllPossiblePlayerMoves(activePlayer);
+        GenerateAllPossiblePlayerMoves(GetOtherPlayer(activePlayer));
+        gameState = GameState.Active;
         if (CheckGameFinished())
             EndGame();
-        else if (moveCount >= 10)
-        {
-            moveCount = 0;
-            ChangeActivePlayer();
-        }
     }
 
     private void ClearEnPassant()
@@ -169,47 +225,52 @@ public class GameManager : MonoBehaviour
 
     private bool CheckGameFinished()
     {
-        Piece[] piecesWithCheck = activePlayer.GetPiecesWithCheck();
-        Player otherPlayer = GetOtherPlayer(activePlayer);
-        if (piecesWithCheck.Length > 0)
+        for (int i = 0; i < 2; i++)
         {
-            Piece king = otherPlayer.GetPiecesOfType<King>().FirstOrDefault();
-            otherPlayer.RemoveUnsafeMoves<King>(activePlayer, king);
+            Player player = (i == 0 ? whitePlayer : blackPlayer);
 
-            int availableKingMoves = otherPlayer.GetPiecesOfType<King>().FirstOrDefault().availableMoves.Count();
-
-            if(availableKingMoves == 0)
+            Piece[] piecesWithCheck = player.GetPiecesWithCheck();
+            Player otherPlayer = GetOtherPlayer(player);
+            if (piecesWithCheck.Length > 0)
             {
-                bool canCoverKing = otherPlayer.CanCoverKing(activePlayer);
-                if(!canCoverKing)
+                Piece king = otherPlayer.GetPiecesOfType<King>().FirstOrDefault();
+                otherPlayer.RemoveUnsafeMoves<King>(player, king);
+
+                int availableKingMoves = otherPlayer.GetPiecesOfType<King>().FirstOrDefault().availableMoves.Count();
+
+                if (availableKingMoves == 0)
                 {
-                    SetWinState(WinState.Checkmate);
-                    return true;
+                    bool canCoverKing = otherPlayer.CanCoverKing(player);
+                    if (!canCoverKing)
+                    {
+                        SetWinState(WinState.Checkmate);
+                        return true;
+                    }
                 }
             }
-        }
-        else
-        {
-            int numActivePawns = activePlayer.GetPiecesOfType<Pawn>().Count();
-            int numOtherPawns = otherPlayer.GetPiecesOfType<Pawn>().Count();
-            if(numActivePawns == 0 && numOtherPawns == 0)
+            else
             {
-                if (otherPlayer.score <= 3 && activePlayer.score <= 3)
+                int numActivePawns = player.GetPiecesOfType<Pawn>().Count();
+                int numOtherPawns = otherPlayer.GetPiecesOfType<Pawn>().Count();
+                if (numActivePawns == 0 && numOtherPawns == 0)
                 {
-                    SetWinState(WinState.InsuficientMaterial);
+                    if (otherPlayer.score <= 3 && player.score <= 3)
+                    {
+                        SetWinState(WinState.InsuficientMaterial);
+                        return true;
+                    }
+                }
+
+                Piece king = otherPlayer.GetPiecesOfType<King>().FirstOrDefault();
+                otherPlayer.RemoveUnsafeMoves<King>(player, king);
+
+                int availableMoves = otherPlayer.GetAllAvailableMoves().Count();
+
+                if (availableMoves == 0)
+                {
+                    SetWinState(WinState.Stalemate);
                     return true;
                 }
-            }
-
-            Piece king = otherPlayer.GetPiecesOfType<King>().FirstOrDefault();
-            otherPlayer.RemoveUnsafeMoves<King>(activePlayer, king);
-
-            int availableMoves = otherPlayer.GetAllAvailableMoves().Count();
-
-            if (availableMoves == 0)
-            {
-                SetWinState(WinState.Stalemate);
-                return true;
             }
         }
 
@@ -224,7 +285,20 @@ public class GameManager : MonoBehaviour
 
     private void ChangeActivePlayer()
     {
+        moveCount = 0;
+        SetToPrevoiusBoard();
         activePlayer = activePlayer == whitePlayer ? blackPlayer : whitePlayer;
+
+        if (activePlayer == whitePlayer)
+            StartCoroutine(DoGameLoop());
+    }
+
+    private void SetToPrevoiusBoard()
+    {
+        board.ClearBoard();
+        CreatePiecesFromLayout(savedGridState);
+        GenerateAllPossiblePlayerMoves(activePlayer);
+        GenerateAllPossiblePlayerMoves(GetOtherPlayer(activePlayer));
     }
 
     private Player GetOtherPlayer(Player player)
