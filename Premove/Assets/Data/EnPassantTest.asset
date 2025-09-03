@@ -14,14 +14,18 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   squares:
   - position: {x: 6, y: 7}
-    pieceType: 1
+    pieceType: 0
     teamColor: 0
     id: 0
   - position: {x: 5, y: 7}
-    pieceType: 1
+    pieceType: 0
     teamColor: 0
     id: 0
-  - position: {x: 5, y: 2}
+  - position: {x: 4, y: 2}
+    pieceType: 0
+    teamColor: 1
+    id: 0
+  - position: {x: 6, y: 2}
     pieceType: 0
     teamColor: 1
     id: 0

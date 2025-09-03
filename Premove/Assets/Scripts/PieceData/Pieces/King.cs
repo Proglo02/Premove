@@ -42,7 +42,7 @@ public class King : Piece
                 Piece piece = board.GetPieceOnSquare(nextCoords);
                 if (!board.CoordsOnBoard(nextCoords))
                     break;
-                if (piece == null)
+                if (piece == null || !GameSettings.Instance.piecesBlockMoves)
                     TryAddMove(nextCoords);
                 else if (!piece.IsSameTeam(this))
                 {

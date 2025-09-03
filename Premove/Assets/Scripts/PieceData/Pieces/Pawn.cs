@@ -48,7 +48,7 @@ public class Pawn : Piece
             Piece piece = board.GetPieceOnSquare(nextCoords);
             if (!board.CoordsOnBoard(nextCoords))
                 continue;
-            if (board.gameManager.gameState != GameState.Looping)
+            if (GameManager.Instance.gameState != GameState.Looping)
             {
                 if(piece == null)
                     TryAddMove(nextCoords);

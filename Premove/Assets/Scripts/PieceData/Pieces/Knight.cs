@@ -24,7 +24,7 @@ public class Knight : Piece
             Piece piece = board.GetPieceOnSquare(nextCoords);
             if (!board.CoordsOnBoard(nextCoords))
                 continue;
-            if (piece == null || !piece.IsSameTeam(this))
+            if (piece == null || !GameSettings.Instance.piecesBlockMoves)
                 TryAddMove(nextCoords);
         }
         return availableMoves;

@@ -23,11 +23,30 @@ public class Rook : Piece
                     TryAddMove(nextCoords);
                 else if (!piece.IsSameTeam(this))
                 {
+                    if (GameManager.Instance.gameState != GameState.Active && GameManager.Instance.gameState != GameState.Init)
+                        break;
+
                     TryAddMove(nextCoords);
-                    break;
+
+                    if (GameSettings.Instance.piecesBlockMoves)
+                    {
+                        i = (int)range;
+                        break;
+                    }
                 }
                 else if (piece.IsSameTeam(this))
-                    break;
+                {
+                    if (GameManager.Instance.gameState != GameState.Active && GameManager.Instance.gameState != GameState.Init)
+                        break;
+
+                    TryAddMove(nextCoords);
+
+                    if (GameSettings.Instance.piecesBlockMoves)
+                    {
+                        i = (int)range;
+                        break;
+                    }
+                }
             }
         }
         return availableMoves;

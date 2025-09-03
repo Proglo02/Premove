@@ -8,5 +8,5 @@ public interface IObjectTweener
     /// <summary>
     /// Moves the given transform to the target position
     /// </summary>
-    void MoveTo(Transform transform, Vector3 targetPosition);
+    bool MoveTo(Transform transform, Vector3 targetPosition);
 }

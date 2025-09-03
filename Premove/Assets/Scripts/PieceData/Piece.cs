@@ -7,7 +7,6 @@ using UnityEngine;
 public abstract class Piece : MonoBehaviour
 {
     private MaterialSetter materialSetter;
-    private IObjectTweener tweener;
 
     public Board board { protected get; set; }
 
@@ -23,7 +22,6 @@ public abstract class Piece : MonoBehaviour
 
     private void Awake()
     {
-        tweener = GetComponent<IObjectTweener>();
         materialSetter = GetComponent<MaterialSetter>();
     }
 
@@ -62,7 +60,7 @@ public abstract class Piece : MonoBehaviour
         Vector3 targetPosition = board.CalculatePositionFromCoords(coords);
         square = coords;
         hasMoved = true;
-        tweener.MoveTo(transform, targetPosition);
+        AnimationManager.Instance.MoveTo(transform, targetPosition);
     }
 
     /// <summary>
@@ -93,7 +91,9 @@ public abstract class Piece : MonoBehaviour
     {
         foreach(var square in availableMoves)
         {
-            if (board.GetPieceOnSquare(square) is T)
+            Piece piece = board.GetPieceOnSquare(square);
+
+            if (piece is T && piece.teamColor != teamColor)
                 return true;
         }
 

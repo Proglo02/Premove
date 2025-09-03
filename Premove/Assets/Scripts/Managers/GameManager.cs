@@ -17,7 +17,8 @@ public enum WinState
     None,
     Checkmate,
     Stalemate,
-    InsuficientMaterial
+    InsuficientMaterial,
+    KingTaken
 }
 public struct Move
 {
@@ -27,7 +28,7 @@ public struct Move
 }
 
 [RequireComponent(typeof(PieceInitializer))]
-public class GameManager : MonoBehaviour
+public class GameManager : SingeltonPersistant<GameManager>
 {
     [SerializeField] private BoardLayout startingBoardLayout;
     [SerializeField] private Board board;
@@ -38,9 +39,9 @@ public class GameManager : MonoBehaviour
     private Player blackPlayer;
     private Player activePlayer;
 
-    [HideInInspector] public int moveCount = 0;
+    private int moveCount = 0;
 
-    [HideInInspector] public GameState gameState;
+    public GameState gameState { get; private set; }
     private WinState winState;
 
     private BoardLayout savedGridState;
@@ -48,7 +49,7 @@ public class GameManager : MonoBehaviour
     public List<Move> whiteMoves = new List<Move>();
     public List<Move> blackMoves = new List<Move>();
 
-    private void Awake()
+    protected override void Awake()
     {
         GetComponents();
         CreatePlayers();
@@ -74,8 +75,6 @@ public class GameManager : MonoBehaviour
     {
         SetGameState(GameState.Init);
         SetWinState(WinState.None);
-
-        board.SetDependencies(this);
 
         //Create pieces from set layout
         CreatePiecesFromLayout(startingBoardLayout);
@@ -164,8 +163,8 @@ public class GameManager : MonoBehaviour
         moveCount++;
         GenerateAllPossiblePlayerMoves(activePlayer);
         GenerateAllPossiblePlayerMoves(GetOtherPlayer(activePlayer));
-        ClearEnPassant();
-        if (moveCount >= 5)
+        ClearEnPassant(activePlayer);
+        if (moveCount >= GameSettings.Instance.maxMoves)
             ChangeActivePlayer();
     }
 
@@ -199,7 +198,7 @@ public class GameManager : MonoBehaviour
 
             moveList.RemoveAt(0);
 
-            ClearEnPassant();
+            ClearEnPassant(whiteToPlay ? whitePlayer : blackPlayer);
 
             whiteToPlay = !whiteToPlay;
 
@@ -214,9 +213,9 @@ public class GameManager : MonoBehaviour
             EndGame();
     }
 
-    private void ClearEnPassant()
+    private void ClearEnPassant(Player player)
     {
-        foreach(var piece in GetOtherPlayer(activePlayer).GetPiecesOfType<Pawn>())
+        foreach(var piece in GetOtherPlayer(player).GetPiecesOfType<Pawn>())
         {
             Pawn pawn = (Pawn)piece;
             pawn.hasJumped = false;
@@ -224,6 +223,30 @@ public class GameManager : MonoBehaviour
     }
 
     private bool CheckGameFinished()
+    {
+        if (GameSettings.Instance.forceTakeKing)
+            return CheckIfPlayersHaveKing();
+        else
+            return RegularChessRuleCheck();
+    }
+
+    private bool CheckIfPlayersHaveKing()
+    {
+        for (int i = 0; i < 2; i++)
+        {
+            Player player = (i == 0 ? whitePlayer : blackPlayer);
+
+            if (player.GetPiecesOfType<King>().FirstOrDefault() == null)
+            {
+                winState = WinState.KingTaken;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private bool RegularChessRuleCheck()
     {
         for (int i = 0; i < 2; i++)
         {
@@ -233,8 +256,11 @@ public class GameManager : MonoBehaviour
             Player otherPlayer = GetOtherPlayer(player);
             if (piecesWithCheck.Length > 0)
             {
-                Piece king = otherPlayer.GetPiecesOfType<King>().FirstOrDefault();
-                otherPlayer.RemoveUnsafeMoves<King>(player, king);
+                if (!GameSettings.Instance.forceTakeKing)
+                {
+                    Piece king = otherPlayer.GetPiecesOfType<King>().FirstOrDefault();
+                    otherPlayer.RemoveUnsafeMoves<King>(player, king);
+                }
 
                 int availableKingMoves = otherPlayer.GetPiecesOfType<King>().FirstOrDefault().availableMoves.Count();
 
@@ -261,8 +287,11 @@ public class GameManager : MonoBehaviour
                     }
                 }
 
-                Piece king = otherPlayer.GetPiecesOfType<King>().FirstOrDefault();
-                otherPlayer.RemoveUnsafeMoves<King>(player, king);
+                if (!GameSettings.Instance.forceTakeKing)
+                {
+                    Piece king = otherPlayer.GetPiecesOfType<King>().FirstOrDefault();
+                    otherPlayer.RemoveUnsafeMoves<King>(player, king);
+                }
 
                 int availableMoves = otherPlayer.GetAllAvailableMoves().Count();
 
