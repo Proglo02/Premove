@@ -12,16 +12,16 @@ public class Pawn : Piece
     private Pawn leftPawn;
     private Pawn rightPawn;
 
-    public override List<Vector2Int> SelectAvailableSquares()
+    public override List<Vector2Int> SelectAvailableSquares(bool ignoreOwnPieces, bool blockOverride = false)
     {
         availableMoves.Clear();
-        AddStandardMoves();
-        AddTakeMoves();
+        AddStandardMoves(ignoreOwnPieces, blockOverride);
+        AddTakeMoves(ignoreOwnPieces, blockOverride);
         AddEnPassantMoves();
         return availableMoves;
     }
 
-    private void AddStandardMoves()
+    private void AddStandardMoves(bool ignoreOwnPieces, bool blockOverride = false)
     {
         Vector2Int direction = teamColor == TeamColor.White ? Vector2Int.up : Vector2Int.down;
         int range = hasMoved ? 1 : 2;
@@ -33,12 +33,12 @@ public class Pawn : Piece
                 break;
             if (piece == null)
                 TryAddMove(nextCoords);
-            else
-                break;
+            else if(GameManager.Instance.gameState != GameState.Looping && !ignoreOwnPieces)
+                TryAddMoveOnBlock(nextCoords, piece, blockOverride, out bool stopLooping, ignoreOwnPieces);
         }
     }
 
-    private void AddTakeMoves()
+    private void AddTakeMoves(bool ignoreOwnPieces, bool blockOverride = false)
     {
         Vector2Int direction = teamColor == TeamColor.White ? Vector2Int.up : Vector2Int.down;
         Vector2Int[] takeDirections = new Vector2Int[] { new Vector2Int(1, direction.y), new Vector2Int(-1, direction.y) };
@@ -48,18 +48,10 @@ public class Pawn : Piece
             Piece piece = board.GetPieceOnSquare(nextCoords);
             if (!board.CoordsOnBoard(nextCoords))
                 continue;
-            if (GameManager.Instance.gameState != GameState.Looping)
-            {
-                if(piece == null)
-                    TryAddMove(nextCoords);
-                else if (!piece.IsSameTeam(this))
-                    TryAddMove(nextCoords);
-            }
-            else if(piece != null)
-            {
-                if (!piece.IsSameTeam(this))
-                    TryAddMove(nextCoords);
-            }
+            if (piece != null && !piece.IsSameTeam(this))
+                TryAddMove(nextCoords);
+            else if(!ignoreOwnPieces || GameManager.Instance.gameState != GameState.Looping)
+                TryAddMoveOnBlock(nextCoords, piece, blockOverride, out bool stopLooping, ignoreOwnPieces);
         }
     }
 

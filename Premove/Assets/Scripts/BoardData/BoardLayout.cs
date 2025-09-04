@@ -15,6 +15,7 @@ public class BoardLayout : ScriptableObject
         public PieceType pieceType;
         public TeamColor teamColor;
         public int id;
+        public bool hasMoved;
     }
 
     [SerializeField] private BoardSetupSquare[] squares;
@@ -80,6 +81,7 @@ public class BoardLayout : ScriptableObject
                 square.teamColor = piece.teamColor;
                 square.pieceType = (PieceType)Enum.Parse(typeof(PieceType), piece.GetType().ToString());
                 square.id = piece.id;
+                square.hasMoved = piece.hasMoved;
                 newSquare.Add(square);
             }
         }
@@ -95,5 +97,15 @@ public class BoardLayout : ScriptableObject
         }
 
         return squares[index].id;
+    }
+
+    internal bool HaveMoved(int index)
+    {
+        if (squares.Length <= index)
+        {
+            throw new IndexOutOfRangeException("Index out of range in BoardLayout.GetPieceTeamColorAtIndex");
+        }
+
+        return squares[index].hasMoved;
     }
 }

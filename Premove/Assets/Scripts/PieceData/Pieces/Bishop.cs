@@ -12,10 +12,10 @@ public class Bishop : Piece
         new Vector2Int(-1, -1)
     };
 
-    public override List<Vector2Int> SelectAvailableSquares()
+    public override List<Vector2Int> SelectAvailableSquares(bool ignoreOwnPieces, bool blockOverride = false)
     {
         availableMoves.Clear();
-        float range = Board.BOARD_WIDTH;
+        int range = Board.BOARD_WIDTH;
 
         foreach (var direction in directions)
         {
@@ -27,29 +27,11 @@ public class Bishop : Piece
                     break;
                 if (piece == null)
                     TryAddMove(nextCoords);
-                else if (!piece.IsSameTeam(this))
+                else
                 {
-                    if(GameManager.Instance.gameState != GameState.Active && GameManager.Instance.gameState != GameState.Init)
-                        break;
-
-                    TryAddMove(nextCoords);
-
-                    if (GameSettings.Instance.piecesBlockMoves)
+                    if(TryAddMoveOnBlock(nextCoords, piece, blockOverride, out bool stopLooping, ignoreOwnPieces))
                     {
-                        i = (int)range;
-                        break;
-                    }
-                }
-                else if (piece.IsSameTeam(this))
-                {
-                    if (GameManager.Instance.gameState != GameState.Active && GameManager.Instance.gameState != GameState.Init)
-                        break;
-
-                    TryAddMove(nextCoords);
-
-                    if (GameSettings.Instance.piecesBlockMoves)
-                    {
-                        i = (int)range;
+                        i = stopLooping ? range : i;
                         break;
                     }
                 }

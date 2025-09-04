@@ -15,7 +15,7 @@ public class Knight : Piece
         new Vector2Int(-1, 2),
         new Vector2Int(-1, -2),
     };
-    public override List<Vector2Int> SelectAvailableSquares()
+    public override List<Vector2Int> SelectAvailableSquares(bool ignoreOwnPieces, bool blockOverride = false)
     {
         availableMoves.Clear();
         for(int i = 0; i < offsets.Length; i++)
@@ -24,8 +24,10 @@ public class Knight : Piece
             Piece piece = board.GetPieceOnSquare(nextCoords);
             if (!board.CoordsOnBoard(nextCoords))
                 continue;
-            if (piece == null || !GameSettings.Instance.piecesBlockMoves)
+            if (piece == null)
                 TryAddMove(nextCoords);
+            else
+                TryAddMoveOnBlock(nextCoords, piece, blockOverride, out bool stopLooping, ignoreOwnPieces);
         }
         return availableMoves;
     }

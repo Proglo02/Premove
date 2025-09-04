@@ -63,6 +63,7 @@
     <Compile Include="Assets\Scripts\BoardData\Board.cs" />
     <Compile Include="Assets\Scripts\PieceData\Pieces\Rook.cs" />
     <Compile Include="Assets\Scripts\PieceData\Piece.cs" />
+    <Compile Include="Assets\Scripts\UI\GameOverMenu.cs" />
     <Compile Include="Assets\TextMesh Pro\Examples &amp; Extras\Scripts\TMP_TextEventHandler.cs" />
     <Compile Include="Assets\TextMesh Pro\Examples &amp; Extras\Scripts\VertexShakeA.cs" />
     <Compile Include="Assets\Scripts\UI\HighlightManager.cs" />

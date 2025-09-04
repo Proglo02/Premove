@@ -49,8 +49,14 @@ public class GameManager : SingeltonPersistant<GameManager>
     public List<Move> whiteMoves = new List<Move>();
     public List<Move> blackMoves = new List<Move>();
 
+    private float roundDelay = .1f;
+
+    [Header("UI")]
+    [SerializeField] private GameOverMenu gameOverMenu;
+
     protected override void Awake()
     {
+        base.Awake();
         GetComponents();
         CreatePlayers();
     }
@@ -81,7 +87,7 @@ public class GameManager : SingeltonPersistant<GameManager>
 
         //Set the active player to white and generate their possible moves
         activePlayer = whitePlayer;
-        GenerateAllPossiblePlayerMoves(activePlayer);
+        GenerateAllPossiblePlayerMoves(activePlayer, true);
 
         savedGridState = ScriptableObject.CreateInstance<BoardLayout>();
         savedGridState.SetLayoutFromGrid(board.grid);
@@ -117,20 +123,21 @@ public class GameManager : SingeltonPersistant<GameManager>
             TeamColor teamColor = layout.GetPieceTeamColorAtIndex(i);
             string pieceName = layout.GetPieceNameAtIndex(i);
             int id = layout.GetPieceId(i);
+            bool haveMoved = layout.HaveMoved(i);
             
             Type type = Type.GetType(pieceName);
-            InitializePiece(coords, teamColor, type, id);
+            InitializePiece(coords, teamColor, type, id, haveMoved);
         }
     }
 
     /// <summary>
     /// Initializes a piece at the given corrds of the type and color
     /// </summary>
-    public void InitializePiece(Vector2Int coords, TeamColor teamColor, Type type, int id)
+    public void InitializePiece(Vector2Int coords, TeamColor teamColor, Type type, int id, bool haveMoved)
     {
         //Creatse a new piece of the given type
         Piece newPiece = pieceInitializer.InitializePiece(type).GetComponent<Piece>();
-        newPiece.SetData(coords, teamColor, board, id);
+        newPiece.SetData(coords, teamColor, board, id, haveMoved);
 
         //Set the material of the piece based on its team color
         Material teamMaterial = pieceInitializer.GetTeamMaterial(teamColor);
@@ -142,9 +149,9 @@ public class GameManager : SingeltonPersistant<GameManager>
         currentPlayer.AddPiece(newPiece);
     }
 
-    private void GenerateAllPossiblePlayerMoves(Player player)
+    private void GenerateAllPossiblePlayerMoves(Player player, bool ignoreOwnPieces, bool blockOverride = false)
     {
-        player.GenerateAllPossibleMoves();
+        player.GenerateAllPossibleMoves(ignoreOwnPieces, blockOverride);
     }
 
     /// <summary>
@@ -161,8 +168,8 @@ public class GameManager : SingeltonPersistant<GameManager>
     public void EndTurn()
     {
         moveCount++;
-        GenerateAllPossiblePlayerMoves(activePlayer);
-        GenerateAllPossiblePlayerMoves(GetOtherPlayer(activePlayer));
+        GenerateAllPossiblePlayerMoves(activePlayer, true);
+        GenerateAllPossiblePlayerMoves(GetOtherPlayer(activePlayer), true);
         ClearEnPassant(activePlayer);
         if (moveCount >= GameSettings.Instance.maxMoves)
             ChangeActivePlayer();
@@ -180,8 +187,8 @@ public class GameManager : SingeltonPersistant<GameManager>
             else if (blackMoves.Count < 1)
                 whiteToPlay = true;
 
-            GenerateAllPossiblePlayerMoves(activePlayer);
-            GenerateAllPossiblePlayerMoves(GetOtherPlayer(activePlayer));
+            GenerateAllPossiblePlayerMoves(activePlayer, true);
+            GenerateAllPossiblePlayerMoves(GetOtherPlayer(activePlayer), true);
 
             List<Move> moveList = whiteToPlay ? whiteMoves : blackMoves;
 
@@ -202,15 +209,17 @@ public class GameManager : SingeltonPersistant<GameManager>
 
             whiteToPlay = !whiteToPlay;
 
-            yield return new WaitForSeconds(.5f);
+            yield return new WaitForSeconds(roundDelay);
         }
 
         savedGridState.SetLayoutFromGrid(board.grid);
-        GenerateAllPossiblePlayerMoves(activePlayer);
-        GenerateAllPossiblePlayerMoves(GetOtherPlayer(activePlayer));
+        GenerateAllPossiblePlayerMoves(activePlayer, false, true);
+        GenerateAllPossiblePlayerMoves(GetOtherPlayer(activePlayer), false, true);
+        if (CheckGameFinished(out Player winPlayer))
+            EndGame(winPlayer.teamColor);
         gameState = GameState.Active;
-        if (CheckGameFinished())
-            EndGame();
+        GenerateAllPossiblePlayerMoves(GetOtherPlayer(activePlayer), true);
+        GenerateAllPossiblePlayerMoves(activePlayer, true);
     }
 
     private void ClearEnPassant(Player player)
@@ -222,16 +231,18 @@ public class GameManager : SingeltonPersistant<GameManager>
         }
     }
 
-    private bool CheckGameFinished()
+    private bool CheckGameFinished(out Player winPlayer)
     {
         if (GameSettings.Instance.forceTakeKing)
-            return CheckIfPlayersHaveKing();
+            return CheckIfPlayersHaveKing(out winPlayer);
         else
-            return RegularChessRuleCheck();
+            return RegularChessRuleCheck(out winPlayer);
     }
 
-    private bool CheckIfPlayersHaveKing()
+    private bool CheckIfPlayersHaveKing(out Player winPlayer)
     {
+        winPlayer = null;
+
         for (int i = 0; i < 2; i++)
         {
             Player player = (i == 0 ? whitePlayer : blackPlayer);
@@ -239,6 +250,7 @@ public class GameManager : SingeltonPersistant<GameManager>
             if (player.GetPiecesOfType<King>().FirstOrDefault() == null)
             {
                 winState = WinState.KingTaken;
+                winPlayer = player;
                 return true;
             }
         }
@@ -246,7 +258,7 @@ public class GameManager : SingeltonPersistant<GameManager>
         return false;
     }
 
-    private bool RegularChessRuleCheck()
+    private bool RegularChessRuleCheck(out Player winPlayer)
     {
         for (int i = 0; i < 2; i++)
         {
@@ -259,7 +271,8 @@ public class GameManager : SingeltonPersistant<GameManager>
                 if (!GameSettings.Instance.forceTakeKing)
                 {
                     Piece king = otherPlayer.GetPiecesOfType<King>().FirstOrDefault();
-                    otherPlayer.RemoveUnsafeMoves<King>(player, king);
+                    otherPlayer.RemoveUnsafeMoves<King>(player, king, false);
+                    otherPlayer.RemoveunsafeCastleMoves(player, king);
                 }
 
                 int availableKingMoves = otherPlayer.GetPiecesOfType<King>().FirstOrDefault().availableMoves.Count();
@@ -270,6 +283,7 @@ public class GameManager : SingeltonPersistant<GameManager>
                     if (!canCoverKing)
                     {
                         SetWinState(WinState.Checkmate);
+                        winPlayer = player;
                         return true;
                     }
                 }
@@ -283,6 +297,7 @@ public class GameManager : SingeltonPersistant<GameManager>
                     if (otherPlayer.score <= 3 && player.score <= 3)
                     {
                         SetWinState(WinState.InsuficientMaterial);
+                        winPlayer = player;
                         return true;
                     }
                 }
@@ -290,7 +305,8 @@ public class GameManager : SingeltonPersistant<GameManager>
                 if (!GameSettings.Instance.forceTakeKing)
                 {
                     Piece king = otherPlayer.GetPiecesOfType<King>().FirstOrDefault();
-                    otherPlayer.RemoveUnsafeMoves<King>(player, king);
+                    otherPlayer.RemoveUnsafeMoves<King>(player, king, false);
+                    otherPlayer.RemoveunsafeCastleMoves(player, king);
                 }
 
                 int availableMoves = otherPlayer.GetAllAvailableMoves().Count();
@@ -298,18 +314,21 @@ public class GameManager : SingeltonPersistant<GameManager>
                 if (availableMoves == 0)
                 {
                     SetWinState(WinState.Stalemate);
+                    winPlayer = player;
                     return true;
                 }
             }
         }
-
+        winPlayer = null;
         return false;
     }
 
-    private void EndGame()
+    private void EndGame(TeamColor teamColor)
     {
         Debug.Log(winState.ToString());
         SetGameState(GameState.Finished);
+        gameOverMenu.gameObject.SetActive(true);
+        gameOverMenu.SetWinText(teamColor);
     }
 
     private void ChangeActivePlayer()
@@ -326,8 +345,8 @@ public class GameManager : SingeltonPersistant<GameManager>
     {
         board.ClearBoard();
         CreatePiecesFromLayout(savedGridState);
-        GenerateAllPossiblePlayerMoves(activePlayer);
-        GenerateAllPossiblePlayerMoves(GetOtherPlayer(activePlayer));
+        GenerateAllPossiblePlayerMoves(activePlayer, true);
+        GenerateAllPossiblePlayerMoves(GetOtherPlayer(activePlayer), true);
     }
 
     private Player GetOtherPlayer(Player player)
@@ -343,6 +362,11 @@ public class GameManager : SingeltonPersistant<GameManager>
         activePlayer.RemoveUnsafeMoves<T>(GetOtherPlayer(activePlayer), piece);
     }
 
+    public void RemoveUnsafeCastleMoves()
+    {
+        activePlayer.RemoveunsafeCastleMoves(GetOtherPlayer(activePlayer), activePlayer.GetPiecesOfType<King>().FirstOrDefault());
+    }
+
     /// <summary>
     /// Removes a taken piece
     /// </summary>
@@ -352,5 +376,12 @@ public class GameManager : SingeltonPersistant<GameManager>
         pieceOwner.score -= piece.value;
         pieceOwner.RemovePiece(piece);
         Destroy(piece.gameObject);
+    }
+
+    public bool SquareAttacked(Vector2Int square, TeamColor teamColor)
+    {
+        Player oppositePlayer = teamColor == TeamColor.White ? blackPlayer : whitePlayer;
+
+        return oppositePlayer.CanAttackSquare(square);
     }
 }

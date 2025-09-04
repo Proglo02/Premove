@@ -23,16 +23,16 @@ public class King : Piece
     private Piece leftRook;
     private Piece rightRook;
 
-    public override List<Vector2Int> SelectAvailableSquares()
+    public override List<Vector2Int> SelectAvailableSquares(bool ignoreOwnPieces, bool blockOverride = false)
     {
         availableMoves.Clear();
-        AddStandardMoves();
-        AddCastlingMoves();
+        AddStandardMoves(ignoreOwnPieces, blockOverride);
+        AddCastlingMoves(ignoreOwnPieces, blockOverride);
         return availableMoves;
     }
-    private void AddStandardMoves()
+    private void AddStandardMoves(bool ignoreOwnPieces, bool blockOverride = false)
     {
-        float range = 1;
+        int range = 1;
 
         foreach (var direction in directions)
         {
@@ -42,32 +42,27 @@ public class King : Piece
                 Piece piece = board.GetPieceOnSquare(nextCoords);
                 if (!board.CoordsOnBoard(nextCoords))
                     break;
-                if (piece == null || !GameSettings.Instance.piecesBlockMoves)
+                if (piece == null)
                     TryAddMove(nextCoords);
-                else if (!piece.IsSameTeam(this))
-                {
-                    TryAddMove(nextCoords);
-                    break;
-                }
-                else if (piece.IsSameTeam(this))
-                    break;
+                else
+                    TryAddMoveOnBlock(nextCoords, piece, blockOverride, out bool stopLooping, ignoreOwnPieces);
             }
         }
     }
-    private void AddCastlingMoves()
+    private void AddCastlingMoves(bool ignoreOwnPieces, bool blockOverride = false)
     {
-        if (hasMoved)
+        if (hasMoved || blockOverride)
             return;
 
-        leftRook = TryGetPieceInDirection<Rook>(teamColor, Vector2Int.left);
+        leftRook = TryGetPieceInDirection<Rook>(teamColor, Vector2Int.left, GameSettings.Instance.piecesBlockMoves);
         if(leftRook && !leftRook.hasMoved)
         {
             leftCastlingMove = square + Vector2Int.left * 2;
             availableMoves.Add(leftCastlingMove);
         }
 
-        rightRook = TryGetPieceInDirection<Rook>(teamColor, Vector2Int.right);
-        if(rightRook && !rightRook.hasMoved)
+        rightRook = TryGetPieceInDirection<Rook>(teamColor, Vector2Int.right, GameSettings.Instance.piecesBlockMoves);
+        if (rightRook && !rightRook.hasMoved)
         {
             rightCastlingMove = square + Vector2Int.right * 2;
             availableMoves.Add(rightCastlingMove);
@@ -79,11 +74,13 @@ public class King : Piece
         base.MovePiece(coords, addMove);
         if(coords == leftCastlingMove)
         {
+            board.TakePiece(board.GetPieceOnSquare(coords + Vector2Int.right));
             board.UpdateBoardOnPieceMove(coords + Vector2Int.right, leftRook.square, leftRook, null);
             leftRook.MovePiece(coords + Vector2Int.right);
         }
         else if (coords == rightCastlingMove)
         {
+            board.TakePiece(board.GetPieceOnSquare(coords + Vector2Int.left));
             board.UpdateBoardOnPieceMove(coords + Vector2Int.left, rightRook.square, rightRook, null);
             rightRook.MovePiece(coords + Vector2Int.left);
         }

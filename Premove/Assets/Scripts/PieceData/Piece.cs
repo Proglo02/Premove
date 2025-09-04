@@ -18,7 +18,7 @@ public abstract class Piece : MonoBehaviour
     public bool hasMoved { get; private set; } = false;
     public List<Vector2Int> availableMoves = new List<Vector2Int>();
 
-    public abstract List<Vector2Int> SelectAvailableSquares();
+    public abstract List<Vector2Int> SelectAvailableSquares(bool ignoreOwnPieces, bool blockOverride = false);
 
     private void Awake()
     {
@@ -74,12 +74,13 @@ public abstract class Piece : MonoBehaviour
     /// <summary>
     /// Set the data of the piece
     /// </summary>
-    public void SetData(Vector2Int coords, TeamColor color, Board board, int id)
+    public void SetData(Vector2Int coords, TeamColor color, Board board, int id, bool haveMoved)
     {
         teamColor = color;
         square = coords;
         this.board = board;
         this.id = id;
+        hasMoved = haveMoved;
 
         transform.position = board.CalculatePositionFromCoords(coords);
     }
@@ -103,7 +104,7 @@ public abstract class Piece : MonoBehaviour
     /// <summary>
     /// Tries to get the piece of a type in the given direction
     /// </summary>
-    protected Piece TryGetPieceInDirection<T>(TeamColor teamColor, Vector2Int direction) where T : Piece
+    protected Piece TryGetPieceInDirection<T>(TeamColor teamColor, Vector2Int direction, bool ignoreOtherPieces = true) where T : Piece
     {
         for(int i = 1; i <= Board.BOARD_WIDTH; i++)
         {
@@ -113,12 +114,48 @@ public abstract class Piece : MonoBehaviour
                 return null;
             if(piece != null)
             {
-                if (piece.teamColor != teamColor || !(piece is T))
+                if ((piece.teamColor != teamColor || !(piece is T)) && ignoreOtherPieces)
                     return null;
-                else if (piece.teamColor == teamColor && piece is T)
+
+                if (piece.teamColor == teamColor && piece is T)
                     return piece;
             }
         }
         return null;
+    }
+
+    protected bool TryAddMoveOnBlock(Vector2Int nextCoords, Piece piece, bool blockOverride, out bool stopLooping, bool ignoreOwnPieces)
+    {
+        stopLooping = false;
+
+        if (GameManager.Instance.gameState != GameState.Active && GameManager.Instance.gameState != GameState.Init)
+        {
+            if(piece!= null && !IsSameTeam(piece))
+                TryAddMove(nextCoords);
+
+            return true;
+        }
+
+        if (ignoreOwnPieces || piece == null || !IsSameTeam(piece))
+            TryAddMove(nextCoords);
+
+        if (GameSettings.Instance.piecesBlockMoves || blockOverride)
+        {
+            stopLooping = true;
+            return true;
+        }
+
+        return false;
+    }
+
+    protected bool ShouldPieceBlockMoves()
+    {
+        if (GameManager.Instance.gameState != GameState.Active && GameManager.Instance.gameState != GameState.Init)
+            return true;
+
+        if (GameSettings.Instance.piecesBlockMoves)
+            return true;
+
+        return false;
     }
 }

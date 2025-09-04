@@ -80,8 +80,13 @@ public class Board : MonoBehaviour
 
     private void SelectPiece(Piece piece)
     {
-        if(!GameSettings.Instance.forceTakeKing)
+        if (!GameSettings.Instance.forceTakeKing)
+        {
             GameManager.Instance.RemoveUnsafeMoves<King>(piece);
+
+            if(piece is King)
+                GameManager.Instance.RemoveUnsafeCastleMoves();
+        }
         selectedPiece = piece;
         List<Vector2Int> moves = selectedPiece.availableMoves;
         ShowMoves(moves);
@@ -170,7 +175,7 @@ public class Board : MonoBehaviour
     public void PromotePiece(Piece piece)
     {
         TakePiece(piece);
-        GameManager.Instance.InitializePiece(piece.square, piece.teamColor, typeof(Queen), piece.id);
+        GameManager.Instance.InitializePiece(piece.square, piece.teamColor, typeof(Queen), piece.id, piece.hasMoved);
     }
 
     /// <summary>
