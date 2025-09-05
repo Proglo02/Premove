@@ -3,19 +3,36 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+[Serializable]
+public struct PieceUIData
+{
+    public Sprite whiteIcon;
+    public Sprite blackIcon;
+}
+
+public struct PieceData
+{
+    public Type type;
+    public Vector2Int square;
+    public TeamColor teamColor;
+    public int value;
+    public int id;
+    public int numMoves;
+    public int promotionMove;
+    public bool hasJumped;
+}
+
 [RequireComponent(typeof(IObjectTweener), typeof(MaterialSetter))]
 public abstract class Piece : MonoBehaviour
 {
+    [SerializeField] public PieceUIData pieceUIData;
+
     private MaterialSetter materialSetter;
 
     public Board board { protected get; set; }
 
-    public Vector2Int square;
-    public TeamColor teamColor;
-    public int value = 0;
-    [HideInInspector] public int id = 0;
+    public PieceData pieceData = new PieceData();
 
-    public bool hasMoved { get; private set; } = false;
     public List<Vector2Int> availableMoves = new List<Vector2Int>();
 
     public abstract List<Vector2Int> SelectAvailableSquares(bool ignoreOwnPieces, bool blockOverride = false);
@@ -38,7 +55,7 @@ public abstract class Piece : MonoBehaviour
     /// </summary>
     public bool IsSameTeam(Piece piece)
     {
-        return piece.teamColor == teamColor;
+        return piece.pieceData.teamColor == pieceData.teamColor;
     }
 
     /// <summary>
@@ -52,15 +69,20 @@ public abstract class Piece : MonoBehaviour
     /// <summary>
     /// Moves the piece to the given coordinates
     /// </summary>
-    public virtual void MovePiece(Vector2Int coords, bool addMove = true)
+    public virtual void MovePiece(Vector2Int coords, bool addMove = true, PieceData takenPiece = new PieceData(), bool doubleMove = false)
     {
-        if(addMove)
-            board.AddMove(square, coords, teamColor, id);
+        if (addMove)
+        {
+            board.AddMove(pieceData.square, takenPiece, coords, pieceData.teamColor, pieceData.id, doubleMove);
+            pieceData.numMoves++;
+        }
 
         Vector3 targetPosition = board.CalculatePositionFromCoords(coords);
-        square = coords;
-        hasMoved = true;
+        pieceData.square = coords;
         AnimationManager.Instance.MoveTo(transform, targetPosition);
+
+        if(addMove)
+            MovesList.Instance.AddMove(this);
     }
 
     /// <summary>
@@ -74,15 +96,21 @@ public abstract class Piece : MonoBehaviour
     /// <summary>
     /// Set the data of the piece
     /// </summary>
-    public void SetData(Vector2Int coords, TeamColor color, Board board, int id, bool haveMoved)
+    public void SetData(PieceData pieceData, Board board)
     {
-        teamColor = color;
-        square = coords;
+        this.pieceData.type = pieceData.type;
+        this.pieceData.teamColor = pieceData.teamColor;
+        this.pieceData.square = pieceData.square;
         this.board = board;
-        this.id = id;
-        hasMoved = haveMoved;
+        this.pieceData.id = pieceData.id;
+        this.pieceData.numMoves = pieceData.numMoves;
+        this.pieceData.promotionMove = pieceData.promotionMove;
+        this.pieceData.hasJumped = pieceData.hasJumped;
 
-        transform.position = board.CalculatePositionFromCoords(coords);
+        if (this is Pawn)
+            GetComponent<Pawn>().hasJumped = pieceData.hasJumped;
+
+        transform.position = board.CalculatePositionFromCoords(pieceData.square);
     }
 
     /// <summary>
@@ -94,7 +122,7 @@ public abstract class Piece : MonoBehaviour
         {
             Piece piece = board.GetPieceOnSquare(square);
 
-            if (piece is T && piece.teamColor != teamColor)
+            if (piece is T && piece.pieceData.teamColor != pieceData.teamColor)
                 return true;
         }
 
@@ -108,16 +136,16 @@ public abstract class Piece : MonoBehaviour
     {
         for(int i = 1; i <= Board.BOARD_WIDTH; i++)
         {
-            Vector2Int nextCoords = square + direction * i;
+            Vector2Int nextCoords = pieceData.square + direction * i;
             Piece piece = board.GetPieceOnSquare(nextCoords);
             if (!board.CoordsOnBoard(nextCoords))
                 return null;
             if(piece != null)
             {
-                if ((piece.teamColor != teamColor || !(piece is T)) && ignoreOtherPieces)
+                if ((piece.pieceData.teamColor != teamColor || !(piece is T)) && ignoreOtherPieces)
                     return null;
 
-                if (piece.teamColor == teamColor && piece is T)
+                if (piece.pieceData.teamColor == teamColor && piece is T)
                     return piece;
             }
         }
@@ -157,5 +185,10 @@ public abstract class Piece : MonoBehaviour
             return true;
 
         return false;
+    }
+
+    public virtual void ResetMove()
+    {
+        pieceData.numMoves--;
     }
 }

@@ -62,6 +62,7 @@
   <ItemGroup>
     <Compile Include="Assets\Scripts\BoardData\Board.cs" />
     <Compile Include="Assets\Scripts\PieceData\Pieces\Rook.cs" />
+    <Compile Include="Assets\Scripts\UI\HUD.cs" />
     <Compile Include="Assets\Scripts\PieceData\Piece.cs" />
     <Compile Include="Assets\Scripts\UI\GameOverMenu.cs" />
     <Compile Include="Assets\TextMesh Pro\Examples &amp; Extras\Scripts\TMP_TextEventHandler.cs" />
@@ -85,6 +86,7 @@
     <Compile Include="Assets\Scripts\PieceData\Pieces\Queen.cs" />
     <Compile Include="Assets\TextMesh Pro\Examples &amp; Extras\Scripts\ObjectSpin.cs" />
     <Compile Include="Assets\TextMesh Pro\Examples &amp; Extras\Scripts\TMP_PhoneNumberValidator.cs" />
+    <Compile Include="Assets\Scripts\UI\MovesList.cs" />
     <Compile Include="Assets\Scripts\PieceData\Pieces\Pawn.cs" />
     <Compile Include="Assets\TextMesh Pro\Examples &amp; Extras\Scripts\VertexJitter.cs" />
     <Compile Include="Assets\TextMesh Pro\Examples &amp; Extras\Scripts\TMP_DigitValidator.cs" />
@@ -117,6 +119,7 @@
     <Compile Include="Assets\Scripts\SingeltonPersistant.cs" />
     <Compile Include="Assets\Scripts\Input\ColliderInputReciever.cs" />
     <Compile Include="Assets\TextMesh Pro\Examples &amp; Extras\Scripts\Benchmark03.cs" />
+    <Compile Include="Assets\Scripts\UI\MovesListItem.cs" />
     <Compile Include="Assets\Scripts\PieceData\TeamColor.cs" />
     <Compile Include="Assets\Scripts\Input\BoardInputHandler.cs" />
     <Compile Include="Assets\Scripts\PieceData\Pieces\Bishop.cs" />

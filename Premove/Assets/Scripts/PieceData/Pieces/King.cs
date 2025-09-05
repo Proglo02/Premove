@@ -38,7 +38,7 @@ public class King : Piece
         {
             for (int i = 1; i <= range; i++)
             {
-                Vector2Int nextCoords = square + direction * i;
+                Vector2Int nextCoords = pieceData.square + direction * i;
                 Piece piece = board.GetPieceOnSquare(nextCoords);
                 if (!board.CoordsOnBoard(nextCoords))
                     break;
@@ -51,38 +51,59 @@ public class King : Piece
     }
     private void AddCastlingMoves(bool ignoreOwnPieces, bool blockOverride = false)
     {
-        if (hasMoved || blockOverride)
+        if (pieceData.numMoves > 0 || blockOverride)
             return;
 
-        leftRook = TryGetPieceInDirection<Rook>(teamColor, Vector2Int.left, GameSettings.Instance.piecesBlockMoves);
-        if(leftRook && !leftRook.hasMoved)
+        leftRook = TryGetPieceInDirection<Rook>(pieceData.teamColor, Vector2Int.left, GameSettings.Instance.piecesBlockMoves);
+        if(leftRook && leftRook.pieceData.numMoves <= 0)
         {
-            leftCastlingMove = square + Vector2Int.left * 2;
+            leftCastlingMove = pieceData.square + Vector2Int.left * 2;
             availableMoves.Add(leftCastlingMove);
         }
 
-        rightRook = TryGetPieceInDirection<Rook>(teamColor, Vector2Int.right, GameSettings.Instance.piecesBlockMoves);
-        if (rightRook && !rightRook.hasMoved)
+        rightRook = TryGetPieceInDirection<Rook>(pieceData.teamColor, Vector2Int.right, GameSettings.Instance.piecesBlockMoves);
+        if (rightRook && rightRook.pieceData.numMoves <= 0)
         {
-            rightCastlingMove = square + Vector2Int.right * 2;
+            rightCastlingMove = pieceData.square + Vector2Int.right * 2;
             availableMoves.Add(rightCastlingMove);
         }
     }
 
-    public override void MovePiece(Vector2Int coords, bool addMove = true)
+    public override void MovePiece(Vector2Int coords, bool addMove = true, PieceData takenPiece = new PieceData(), bool doubleMove = false)
     {
-        base.MovePiece(coords, addMove);
+        base.MovePiece(coords, addMove, takenPiece);
         if(coords == leftCastlingMove)
         {
-            board.TakePiece(board.GetPieceOnSquare(coords + Vector2Int.right));
-            board.UpdateBoardOnPieceMove(coords + Vector2Int.right, leftRook.square, leftRook, null);
-            leftRook.MovePiece(coords + Vector2Int.right);
+            Piece pieceToTake = board.GetPieceOnSquare(coords + Vector2Int.right);
+
+            PieceData pieceData = new PieceData();
+            if (pieceToTake)
+            {
+                pieceData.type = pieceToTake.GetType();
+                pieceData.square = pieceToTake.pieceData.square;
+                pieceData.teamColor = pieceToTake.pieceData.teamColor;
+                pieceData.value = pieceToTake.pieceData.value;
+                pieceData.id = pieceToTake.pieceData.id;
+                pieceData.numMoves = pieceToTake.pieceData.numMoves;
+            }
+
+            board.TakePiece(pieceToTake);
+            board.UpdateBoardOnPieceMove(coords + Vector2Int.right, leftRook.pieceData.square, leftRook, null);
+            leftRook.MovePiece(coords + Vector2Int.right, addMove, pieceData, true);
         }
         else if (coords == rightCastlingMove)
         {
-            board.TakePiece(board.GetPieceOnSquare(coords + Vector2Int.left));
-            board.UpdateBoardOnPieceMove(coords + Vector2Int.left, rightRook.square, rightRook, null);
-            rightRook.MovePiece(coords + Vector2Int.left);
+            Piece pieceToTake = board.GetPieceOnSquare(coords + Vector2Int.left);
+
+            PieceData pieceData = new PieceData();
+            if (pieceToTake)
+            {
+                pieceData = pieceToTake.pieceData;
+            }
+
+            board.TakePiece(pieceToTake);
+            board.UpdateBoardOnPieceMove(coords + Vector2Int.left, rightRook.pieceData.square, rightRook, null);
+            rightRook.MovePiece(coords + Vector2Int.left, addMove, pieceData, true);
         }
     }
 }

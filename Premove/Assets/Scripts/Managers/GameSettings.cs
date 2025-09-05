@@ -12,7 +12,7 @@ public class GameSettings : SingeltonPersistant<GameSettings>
     public bool doPityTurnOrder = true;
     public bool piecesBlockMoves = false;
 
-    public int maxMoves = 5;
+    public int maxMoves = 10;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     private static void InitializeOnLoad()

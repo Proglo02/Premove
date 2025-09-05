@@ -15,7 +15,9 @@ public class BoardLayout : ScriptableObject
         public PieceType pieceType;
         public TeamColor teamColor;
         public int id;
-        public bool hasMoved;
+        public int numMoves;
+        public int promotionMove;
+        public bool haveJumped;
     }
 
     [SerializeField] private BoardSetupSquare[] squares;
@@ -77,11 +79,11 @@ public class BoardLayout : ScriptableObject
             {
                 BoardSetupSquare square = new BoardSetupSquare();
 
-                square.position = new Vector2Int(piece.square.x + 1, piece.square.y + 1);
-                square.teamColor = piece.teamColor;
+                square.position = new Vector2Int(piece.pieceData.square.x + 1, piece.pieceData.square.y + 1);
+                square.teamColor = piece.pieceData.teamColor;
                 square.pieceType = (PieceType)Enum.Parse(typeof(PieceType), piece.GetType().ToString());
-                square.id = piece.id;
-                square.hasMoved = piece.hasMoved;
+                square.id = piece.pieceData.id;
+                square.numMoves = piece.pieceData.numMoves;
                 newSquare.Add(square);
             }
         }
@@ -89,7 +91,7 @@ public class BoardLayout : ScriptableObject
         squares = newSquare.ToArray();
     }
 
-    internal int GetPieceId(int index)
+    public int GetPieceId(int index)
     {
         if (squares.Length <= index)
         {
@@ -99,13 +101,33 @@ public class BoardLayout : ScriptableObject
         return squares[index].id;
     }
 
-    internal bool HaveMoved(int index)
+    public int GetNumMoves(int index)
     {
         if (squares.Length <= index)
         {
             throw new IndexOutOfRangeException("Index out of range in BoardLayout.GetPieceTeamColorAtIndex");
         }
 
-        return squares[index].hasMoved;
+        return squares[index].numMoves;
+    }
+
+    public int GetPromotionMove(int index)
+    {
+        if (squares.Length <= index)
+        {
+            throw new IndexOutOfRangeException("Index out of range in BoardLayout.GetPieceTeamColorAtIndex");
+        }
+
+        return squares[index].promotionMove;
+    }
+
+    public bool HaveJumped(int index)
+    {
+        if (squares.Length <= index)
+        {
+            throw new IndexOutOfRangeException("Index out of range in BoardLayout.GetPieceTeamColorAtIndex");
+        }
+
+        return squares[index].haveJumped;
     }
 }

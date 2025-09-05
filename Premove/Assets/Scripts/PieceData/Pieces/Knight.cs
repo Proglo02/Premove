@@ -20,7 +20,7 @@ public class Knight : Piece
         availableMoves.Clear();
         for(int i = 0; i < offsets.Length; i++)
         {
-            Vector2Int nextCoords = square + offsets[i];
+            Vector2Int nextCoords = pieceData.square + offsets[i];
             Piece piece = board.GetPieceOnSquare(nextCoords);
             if (!board.CoordsOnBoard(nextCoords))
                 continue;

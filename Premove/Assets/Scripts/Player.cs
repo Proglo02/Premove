@@ -24,7 +24,7 @@ public class Player
         if (!activePieces.Contains(piece))
         {
             activePieces.Add(piece);
-            score += piece.value;
+            score += piece.pieceData.value;
         }
     }
 
@@ -74,17 +74,17 @@ public class Player
         foreach(var coords in selectedPiece.availableMoves)
         {
             Piece pieceOnSquare = board.GetPieceOnSquare(coords);
-            if(pieceOnSquare && !ignoreOwnPieces && pieceOnSquare.teamColor == selectedPiece.teamColor)
+            if(pieceOnSquare && !ignoreOwnPieces && pieceOnSquare.pieceData.teamColor == selectedPiece.pieceData.teamColor)
             {
                 coordsToRemove.Add(coords);
                 break;
             }
 
-            board.UpdateBoardOnPieceMove(coords, selectedPiece.square, selectedPiece, null);
+            board.UpdateBoardOnPieceMove(coords, selectedPiece.pieceData.square, selectedPiece, null);
             otherPlayer.GenerateAllPossibleMoves(false, true);
             if (otherPlayer.CheckIfAttackingPiece<King>())
                 coordsToRemove.Add(coords);
-            board.UpdateBoardOnPieceMove(selectedPiece.square, coords, selectedPiece, pieceOnSquare);
+            board.UpdateBoardOnPieceMove(selectedPiece.pieceData.square, coords, selectedPiece, pieceOnSquare);
         }
         
         foreach(var coords in coordsToRemove)
@@ -98,41 +98,41 @@ public class Player
         List<Vector2Int> coordsToRemove = new List<Vector2Int>();
         for (int i = 1; i <= 3; i++)
         {
-            Vector2Int coords = selectedPiece.square + Vector2Int.left * i;
+            Vector2Int coords = selectedPiece.pieceData.square + Vector2Int.left * i;
             Piece pieceOnSquare = board.GetPieceOnSquare(coords);
-            board.UpdateBoardOnPieceMove(coords, selectedPiece.square, selectedPiece, null);
+            board.UpdateBoardOnPieceMove(coords, selectedPiece.pieceData.square, selectedPiece, null);
             otherPlayer.GenerateAllPossibleMoves(false, true);
             if (otherPlayer.CheckIfAttackingPiece<King>())
             {
                 for (int j = 1; j <= 3; j++)
                 {
-                    Vector2Int castleCoords = selectedPiece.square + Vector2Int.left * j;
+                    Vector2Int castleCoords = selectedPiece.pieceData.square + Vector2Int.left * j;
                     coordsToRemove.Add(castleCoords);
                 }
-                board.UpdateBoardOnPieceMove(selectedPiece.square, coords, selectedPiece, pieceOnSquare);
+                board.UpdateBoardOnPieceMove(selectedPiece.pieceData.square, coords, selectedPiece, pieceOnSquare);
                 break;
             }
-            board.UpdateBoardOnPieceMove(selectedPiece.square, coords, selectedPiece, pieceOnSquare);
+            board.UpdateBoardOnPieceMove(selectedPiece.pieceData.square, coords, selectedPiece, pieceOnSquare);
         }
 
 
             for (int i = 1; i <= 2; i++)
         {
-            Vector2Int coords = selectedPiece.square + Vector2Int.right * i;
+            Vector2Int coords = selectedPiece.pieceData.square + Vector2Int.right * i;
             Piece pieceOnSquare = board.GetPieceOnSquare(coords);
-            board.UpdateBoardOnPieceMove(coords, selectedPiece.square, selectedPiece, null);
+            board.UpdateBoardOnPieceMove(coords, selectedPiece.pieceData.square, selectedPiece, null);
             otherPlayer.GenerateAllPossibleMoves(false, true);
             if (otherPlayer.CheckIfAttackingPiece<King>())
             {
                 for (int j = 1; j <= 2; j++)
                 {
-                    Vector2Int castleCoords = selectedPiece.square + Vector2Int.right * j;
+                    Vector2Int castleCoords = selectedPiece.pieceData.square + Vector2Int.right * j;
                     coordsToRemove.Add(castleCoords);
                 }
-                board.UpdateBoardOnPieceMove(selectedPiece.square, coords, selectedPiece, pieceOnSquare);
+                board.UpdateBoardOnPieceMove(selectedPiece.pieceData.square, coords, selectedPiece, pieceOnSquare);
                 break;
             }
-            board.UpdateBoardOnPieceMove(selectedPiece.square, coords, selectedPiece, pieceOnSquare);
+            board.UpdateBoardOnPieceMove(selectedPiece.pieceData.square, coords, selectedPiece, pieceOnSquare);
         }
 
         foreach (var coords in coordsToRemove)
@@ -166,17 +166,17 @@ public class Player
             {
                 Piece pieceOnCoords = board.GetPieceOnSquare(coords);
 
-                if (pieceOnCoords && pieceOnCoords.teamColor == teamColor)
+                if (pieceOnCoords && pieceOnCoords.pieceData.teamColor == teamColor)
                     break;
 
-                board.UpdateBoardOnPieceMove(coords, piece.square, piece, null);
+                board.UpdateBoardOnPieceMove(coords, piece.pieceData.square, piece, null);
                 otherPlayer.GenerateAllPossibleMoves(false, true);
                 if(!otherPlayer.CheckIfAttackingPiece<King>())
                 {
-                    board.UpdateBoardOnPieceMove(piece.square, coords, piece, pieceOnCoords);
+                    board.UpdateBoardOnPieceMove(piece.pieceData.square, coords, piece, pieceOnCoords);
                     return true;
                 }
-                board.UpdateBoardOnPieceMove(piece.square, coords, piece, pieceOnCoords);
+                board.UpdateBoardOnPieceMove(piece.pieceData.square, coords, piece, pieceOnCoords);
             }
         }
 

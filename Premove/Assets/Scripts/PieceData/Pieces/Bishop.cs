@@ -21,7 +21,7 @@ public class Bishop : Piece
         {
             for (int i = 1; i <= range; i++)
             {
-                Vector2Int nextCoords = square + direction * i;
+                Vector2Int nextCoords = pieceData.square + direction * i;
                 Piece piece = board.GetPieceOnSquare(nextCoords);
                 if (!board.CoordsOnBoard(nextCoords))
                     break;

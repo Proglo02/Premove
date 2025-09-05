@@ -23,11 +23,11 @@ public class Pawn : Piece
 
     private void AddStandardMoves(bool ignoreOwnPieces, bool blockOverride = false)
     {
-        Vector2Int direction = teamColor == TeamColor.White ? Vector2Int.up : Vector2Int.down;
-        int range = hasMoved ? 1 : 2;
+        Vector2Int direction = pieceData.teamColor == TeamColor.White ? Vector2Int.up : Vector2Int.down;
+        int range = pieceData.numMoves > 0 ? 1 : 2;
         for (int i = 1; i <= range; i++)
         {
-            Vector2Int nextCoords = square + direction * i;
+            Vector2Int nextCoords = pieceData.square + direction * i;
             Piece piece = board.GetPieceOnSquare(nextCoords);
             if (!board.CoordsOnBoard(nextCoords))
                 break;
@@ -40,11 +40,11 @@ public class Pawn : Piece
 
     private void AddTakeMoves(bool ignoreOwnPieces, bool blockOverride = false)
     {
-        Vector2Int direction = teamColor == TeamColor.White ? Vector2Int.up : Vector2Int.down;
+        Vector2Int direction = pieceData.teamColor == TeamColor.White ? Vector2Int.up : Vector2Int.down;
         Vector2Int[] takeDirections = new Vector2Int[] { new Vector2Int(1, direction.y), new Vector2Int(-1, direction.y) };
         for (int i = 0; i < takeDirections.Length; i++)
         {
-            Vector2Int nextCoords = square + takeDirections[i];
+            Vector2Int nextCoords = pieceData.square + takeDirections[i];
             Piece piece = board.GetPieceOnSquare(nextCoords);
             if (!board.CoordsOnBoard(nextCoords))
                 continue;
@@ -57,32 +57,32 @@ public class Pawn : Piece
 
     private void AddEnPassantMoves()
     {
-        Vector2Int direction = teamColor == TeamColor.White ? Vector2Int.up : Vector2Int.down;
+        Vector2Int direction = pieceData.teamColor == TeamColor.White ? Vector2Int.up : Vector2Int.down;
 
-        leftPawn = (Pawn)TryGetPieceInDirection<Pawn>(teamColor == TeamColor.White ? TeamColor.Black : TeamColor.White, Vector2Int.left);
+        leftPawn = (Pawn)TryGetPieceInDirection<Pawn>(pieceData.teamColor == TeamColor.White ? TeamColor.Black : TeamColor.White, Vector2Int.left);
         if (leftPawn && leftPawn.hasJumped)
         {
-            leftEnPassantMove = square + direction + Vector2Int.left;
+            leftEnPassantMove = pieceData.square + direction + Vector2Int.left;
             availableMoves.Add(leftEnPassantMove);
         }
 
-        rightPawn = (Pawn)TryGetPieceInDirection<Pawn>(teamColor == TeamColor.White ? TeamColor.Black : TeamColor.White, Vector2Int.right);
+        rightPawn = (Pawn)TryGetPieceInDirection<Pawn>(pieceData.teamColor == TeamColor.White ? TeamColor.Black : TeamColor.White, Vector2Int.right);
         if (rightPawn && rightPawn.hasJumped)
         {
-            rightEnPassantMove = square + direction + Vector2Int.right;
+            rightEnPassantMove = pieceData.square + direction + Vector2Int.right;
             availableMoves.Add(rightEnPassantMove);
         }
     }
 
-    public override void MovePiece(Vector2Int coords , bool addMove = true)
+    public override void MovePiece(Vector2Int coords , bool addMove = true, PieceData takenPiece = new PieceData(), bool doubleMove = false)
     {
-        Vector2Int prevCoords = square;
+        Vector2Int prevCoords = pieceData.square;
 
-        base.MovePiece(coords, addMove);
+        base.MovePiece(coords, addMove, takenPiece);
 
-        hasJumped = Mathf.Abs(prevCoords.y - square.y) > 1;
+        hasJumped = Mathf.Abs(prevCoords.y - pieceData.square.y) > 1;
 
-        if(coords.y == (teamColor == TeamColor.White ? 7 : 0))
+        if(coords.y == (pieceData.teamColor == TeamColor.White ? 7 : 0))
         {
             board.PromotePiece(this);
         }
@@ -95,5 +95,11 @@ public class Pawn : Piece
         {
             board.TakePiece(rightPawn);
         }
+    }
+
+    public override void ResetMove()
+    {
+        pieceData.numMoves--;
+        hasJumped = false;
     }
 }

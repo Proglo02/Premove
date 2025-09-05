@@ -59,10 +59,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: edb3dd0ce43e5bd49b4905c7fc043fc4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  square: {x: 0, y: 0}
-  teamColor: 0
-  value: 1
+  pieceUIData:
+    whiteIcon: {fileID: 21300000, guid: a76ad6ed14b3b6a4a923e83a9bac4349, type: 3}
+    blackIcon: {fileID: 21300000, guid: 420c5e3747539204aba3b952c1135be8, type: 3}
   availableMoves: []
+  hasJumped: 0
 --- !u!114 &8499212631305943872
 MonoBehaviour:
   m_ObjectHideFlags: 0

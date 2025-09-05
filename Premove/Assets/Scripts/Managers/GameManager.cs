@@ -23,8 +23,10 @@ public enum WinState
 public struct Move
 {
     public Vector2Int oldCoords;
+    public PieceData takenPiece;
     public Vector2Int newCoords;
     public int id;
+    public bool doubleMove;
 }
 
 [RequireComponent(typeof(PieceInitializer))]
@@ -40,6 +42,7 @@ public class GameManager : SingeltonPersistant<GameManager>
     private Player activePlayer;
 
     private int moveCount = 0;
+    public bool canInteract { get; private set; } = true;
 
     public GameState gameState { get; private set; }
     private WinState winState;
@@ -53,6 +56,7 @@ public class GameManager : SingeltonPersistant<GameManager>
 
     [Header("UI")]
     [SerializeField] private GameOverMenu gameOverMenu;
+    [SerializeField] private HUD hud;
 
     protected override void Awake()
     {
@@ -119,34 +123,42 @@ public class GameManager : SingeltonPersistant<GameManager>
         //Initialize all pieces defined in the layout
         for (int i = 0; i < layout.GetPiecesCount(); i++)
         {
-            Vector2Int coords = layout.GetSquareCoordsAtIndex(i);
-            TeamColor teamColor = layout.GetPieceTeamColorAtIndex(i);
+            PieceData pieceData = new PieceData();
+
             string pieceName = layout.GetPieceNameAtIndex(i);
-            int id = layout.GetPieceId(i);
-            bool haveMoved = layout.HaveMoved(i);
-            
             Type type = Type.GetType(pieceName);
-            InitializePiece(coords, teamColor, type, id, haveMoved);
+
+            pieceData.type = type;
+            pieceData.square = layout.GetSquareCoordsAtIndex(i);
+            pieceData.teamColor = layout.GetPieceTeamColorAtIndex(i);
+            pieceData.id = layout.GetPieceId(i);
+            pieceData.numMoves = layout.GetNumMoves(i);
+            pieceData.promotionMove = layout.GetPromotionMove(i);
+            pieceData.hasJumped = layout.HaveJumped(i);
+            
+            InitializePiece(pieceData);
         }
     }
 
     /// <summary>
     /// Initializes a piece at the given corrds of the type and color
     /// </summary>
-    public void InitializePiece(Vector2Int coords, TeamColor teamColor, Type type, int id, bool haveMoved)
+    public Piece InitializePiece(PieceData pieceData)
     {
         //Creatse a new piece of the given type
-        Piece newPiece = pieceInitializer.InitializePiece(type).GetComponent<Piece>();
-        newPiece.SetData(coords, teamColor, board, id, haveMoved);
+        Piece newPiece = pieceInitializer.InitializePiece(pieceData.type).GetComponent<Piece>();
+        newPiece.SetData(pieceData, board);
 
         //Set the material of the piece based on its team color
-        Material teamMaterial = pieceInitializer.GetTeamMaterial(teamColor);
+        Material teamMaterial = pieceInitializer.GetTeamMaterial(pieceData.teamColor);
         newPiece.SetMaterial(teamMaterial);
 
-        board.PlacePieceOnBoard(coords, newPiece);
+        board.PlacePieceOnBoard(pieceData.square, newPiece);
 
-        Player currentPlayer = teamColor == TeamColor.Black ? blackPlayer : whitePlayer;
+        Player currentPlayer = pieceData.teamColor == TeamColor.Black ? blackPlayer : whitePlayer;
         currentPlayer.AddPiece(newPiece);
+
+        return newPiece;
     }
 
     private void GenerateAllPossiblePlayerMoves(Player player, bool ignoreOwnPieces, bool blockOverride = false)
@@ -171,8 +183,14 @@ public class GameManager : SingeltonPersistant<GameManager>
         GenerateAllPossiblePlayerMoves(activePlayer, true);
         GenerateAllPossiblePlayerMoves(GetOtherPlayer(activePlayer), true);
         ClearEnPassant(activePlayer);
+
+        hud.SetMovesLeft(GameSettings.Instance.maxMoves - moveCount);
+
         if (moveCount >= GameSettings.Instance.maxMoves)
-            ChangeActivePlayer();
+        {
+            canInteract = false;
+            hud.EnableReadyButton();
+        }
     }
 
     private IEnumerator DoGameLoop()
@@ -200,7 +218,7 @@ public class GameManager : SingeltonPersistant<GameManager>
 
             Piece piece = board.GetPieceOnSquare(oldCoords);
 
-            if(piece && piece.id == moveList.First().id && piece.CanMoveTo(newCoords))
+            if(piece && piece.pieceData.id == moveList.First().id && piece.CanMoveTo(newCoords))
                 board.MovePiece(newCoords, piece);
 
             moveList.RemoveAt(0);
@@ -333,12 +351,20 @@ public class GameManager : SingeltonPersistant<GameManager>
 
     private void ChangeActivePlayer()
     {
+        canInteract = true;
         moveCount = 0;
         SetToPrevoiusBoard();
         activePlayer = activePlayer == whitePlayer ? blackPlayer : whitePlayer;
 
         if (activePlayer == whitePlayer)
             StartCoroutine(DoGameLoop());
+
+        hud.SetMovesLeft(GameSettings.Instance.maxMoves);
+    }
+
+    public void PlayerReady()
+    {
+        ChangeActivePlayer();
     }
 
     private void SetToPrevoiusBoard()
@@ -347,6 +373,60 @@ public class GameManager : SingeltonPersistant<GameManager>
         CreatePiecesFromLayout(savedGridState);
         GenerateAllPossiblePlayerMoves(activePlayer, true);
         GenerateAllPossiblePlayerMoves(GetOtherPlayer(activePlayer), true);
+    }
+
+    public void UndoMove()
+    {
+        RemoveMove();
+
+        GenerateAllPossiblePlayerMoves(activePlayer, true);
+        GenerateAllPossiblePlayerMoves(GetOtherPlayer(activePlayer), true);
+
+        hud.DisableReadyButton();
+
+        moveCount--;
+        moveCount = Mathf.Max(0, moveCount);
+        canInteract = true;
+
+        hud.SetMovesLeft(GameSettings.Instance.maxMoves - moveCount);
+    }
+
+    private void RemoveMove()
+    {
+        List<Move> moves = activePlayer.teamColor == TeamColor.White ? whiteMoves : blackMoves;
+
+        if (moves.Count <= 0)
+            return;
+
+        Move move = moves.Last();
+        Piece piece = board.GetPieceOnSquare(move.newCoords);
+
+        if(piece && piece.pieceData.promotionMove == piece.pieceData.numMoves)
+        {
+            PieceData pieceData = new PieceData();
+
+            pieceData = piece.pieceData;
+            pieceData.type = typeof(Pawn);
+            pieceData.promotionMove = -1;
+
+            board.TakePiece(piece);
+            piece = InitializePiece(pieceData);
+        }
+
+        board.MovePiece(move.oldCoords, piece, true);
+        MovesList.Instance.RemoveMove();
+
+        piece.ResetMove();
+
+        if (move.takenPiece.type != null)
+            InitializePiece(move.takenPiece);
+
+        bool doubleMove = move.doubleMove;
+
+        moves.Remove(moves.Last());
+
+        if (doubleMove)
+            RemoveMove();
     }
 
     private Player GetOtherPlayer(Player player)
@@ -372,8 +452,8 @@ public class GameManager : SingeltonPersistant<GameManager>
     /// </summary>
     public void OnPieceRemoved(Piece piece)
     {
-        Player pieceOwner = (piece.teamColor == TeamColor.White ? whitePlayer : blackPlayer);
-        pieceOwner.score -= piece.value;
+        Player pieceOwner = (piece.pieceData.teamColor == TeamColor.White ? whitePlayer : blackPlayer);
+        pieceOwner.score -= piece.pieceData.value;
         pieceOwner.RemovePiece(piece);
         Destroy(piece.gameObject);
     }

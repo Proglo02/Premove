@@ -59,9 +59,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b685780fb7b5f904e85993b4a9e5efde, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  square: {x: 0, y: 0}
-  teamColor: 0
-  value: 5
+  pieceUIData:
+    whiteIcon: {fileID: 21300000, guid: 8a17b7d307492ac47b86202452f295e5, type: 3}
+    blackIcon: {fileID: 21300000, guid: f4b0408bdb330f4459075040a659e4ee, type: 3}
   availableMoves: []
 --- !u!114 &4882756294877040970
 MonoBehaviour:

@@ -24,13 +24,13 @@ public class Queen : Piece
         {
             for (int i = 1; i <= range; i++)
             {
-                Vector2Int nextCoords = square + direction * i;
+                Vector2Int nextCoords = pieceData.square + direction * i;
                 Piece piece = board.GetPieceOnSquare(nextCoords);
                 if (!board.CoordsOnBoard(nextCoords))
                     break;
                 if (piece == null)
                     TryAddMove(nextCoords);
-                else if(!ignoreOwnPieces || GameManager.Instance.gameState != GameState.Looping)
+                else
                 {
                     if(TryAddMoveOnBlock(nextCoords, piece, blockOverride, out bool stopLooping, ignoreOwnPieces))
                     {

@@ -55,7 +55,7 @@ public class Board : MonoBehaviour
     internal void OnSquareSelected(Vector3 inputPosition)
     {
         //Only pass if game is active
-        if (!GameManager.Instance.IsGameInProgress())
+        if (!GameManager.Instance.IsGameInProgress() || !GameManager.Instance.canInteract)
             return;
 
         Vector2Int coords = CalculateCoordsFromPosition(inputPosition);
@@ -73,7 +73,7 @@ public class Board : MonoBehaviour
         }
         else
         {
-            if(piece != null && GameManager.Instance.IsTeamTurnActive(piece.teamColor))
+            if(piece != null && GameManager.Instance.IsTeamTurnActive(piece.pieceData.teamColor))
                 SelectPiece(piece);
         }
     }
@@ -113,18 +113,26 @@ public class Board : MonoBehaviour
 
     private void MoveSelectedPiece(Vector2Int coords, Piece piece)
     {
+        Piece pieceToTake = GetPieceOnSquare(coords);
+
+        PieceData pieceData = new PieceData();
+        if (pieceToTake)
+        {
+            pieceData = pieceToTake.pieceData;
+        }
+
         TryToTakePiece(coords, selectedPiece);
-        UpdateBoardOnPieceMove(coords, piece.square, piece, null);
-        selectedPiece.MovePiece(coords);
+        UpdateBoardOnPieceMove(coords, piece.pieceData.square, piece, null);
+        selectedPiece.MovePiece(coords, true, pieceData);
         DeselectPiece();
         GameManager.Instance.EndTurn();
     }
 
-    public void MovePiece(Vector2Int coords, Piece piece)
+    public void MovePiece(Vector2Int coords, Piece piece, bool takePieceOverride = false)
     {
-        if (TryToTakePiece(coords, piece))
+        if (TryToTakePiece(coords, piece) || takePieceOverride)
         {
-            UpdateBoardOnPieceMove(coords, piece.square, piece, null);
+            UpdateBoardOnPieceMove(coords, piece.pieceData.square, piece, null);
             piece.MovePiece(coords, false);
         }
     }
@@ -167,7 +175,7 @@ public class Board : MonoBehaviour
     {
         if(piece)
         {
-            grid[piece.square.x, piece.square.y] = null;
+            grid[piece.pieceData.square.x, piece.pieceData.square.y] = null;
             GameManager.Instance.OnPieceRemoved(piece);
         }
     }
@@ -175,7 +183,14 @@ public class Board : MonoBehaviour
     public void PromotePiece(Piece piece)
     {
         TakePiece(piece);
-        GameManager.Instance.InitializePiece(piece.square, piece.teamColor, typeof(Queen), piece.id, piece.hasMoved);
+
+        PieceData pieceData = new PieceData();
+
+        pieceData = piece.pieceData;
+        pieceData.type = typeof(Queen);
+        pieceData.promotionMove = piece.pieceData.numMoves;
+
+        GameManager.Instance.InitializePiece(pieceData);
     }
 
     /// <summary>
@@ -243,12 +258,14 @@ public class Board : MonoBehaviour
     /// <summary>
     /// Adds a new move to the player list
     /// </summary>
-    public void AddMove(Vector2Int oldCoords, Vector2Int newCoords, TeamColor teamColor, int id)
+    public void AddMove(Vector2Int oldCoords, PieceData takenPiece, Vector2Int newCoords, TeamColor teamColor, int id, bool doubleMove)
     {
         Move move = new Move();
         move.oldCoords = oldCoords;
+        move.takenPiece = takenPiece;
         move.newCoords = newCoords;
         move.id = id;
+        move.doubleMove = doubleMove;
 
         if (teamColor == TeamColor.White)
             GameManager.Instance.whiteMoves.Add(move);
